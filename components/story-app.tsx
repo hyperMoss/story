@@ -22,6 +22,15 @@ import type {
   StoryWorldCard,
   TurnProposal,
 } from "@/lib/domain";
+import {
+  buildContextPackage,
+  createLongStorySource,
+  decodeStoryBuffer,
+  DIRECT_SOURCE_LIMIT,
+  LONG_FILE_LIMIT_BYTES,
+  retrieveSourceEvidence,
+  type LongStorySource,
+} from "@/lib/long-source";
 
 const STORAGE_KEY = "crossroads-story-session-v1";
 
@@ -79,6 +88,8 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   const [authorized, setAuthorized] = useState<boolean>();
   const [modelMode, setModelMode] = useState<"fake" | "live">("fake");
   const [session, setSession] = useState<StorySession>(restoredSession);
+  const [longSource, setLongSource] = useState<LongStorySource>();
+  const [focusIndex, setFocusIndex] = useState(0);
   const [loading, setLoading] = useState<string>();
   const [error, setError] = useState<string>();
   const taskVersion = useRef(0);
@@ -132,29 +143,54 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
 
   function readFile(file: File) {
     if (loading) return;
-    const version = ++taskVersion.current;
-    setError(undefined);
     const extension = file.name.toLowerCase().split(".").pop();
     if (!extension || !["txt", "md"].includes(extension)) {
-      setError("首版只支持 UTF-8 编码的 .txt 和 .md 文件。");
+      setError("只支持 UTF-8 或 GB18030 编码的 .txt 和 .md 文件。");
       return;
     }
-    if (file.size > 100_000) {
-      setError("文件过大，请保留一个章节或短篇后再导入。");
+    if (file.size > LONG_FILE_LIMIT_BYTES) {
+      setError("文件超过 20 MiB，请先拆分成较小的卷或篇章。");
       return;
     }
-    file
-      .text()
-      .then((text) => {
-        if (taskVersion.current === version) {
-          setSession((current) => ({ ...current, sourceText: text }));
-        }
-      })
-      .catch(() => {
-        if (taskVersion.current === version) {
-          setError("无法读取这个文件，请确认它是 UTF-8 文本。");
-        }
+    void withTask("正在读取并整理故事结构…", async (isCurrent) => {
+      const { text, encoding } = decodeStoryBuffer(await file.arrayBuffer());
+      if (!isCurrent()) return;
+      if (text.length <= DIRECT_SOURCE_LIMIT) {
+        setLongSource(undefined);
+        setFocusIndex(0);
+        setSession((current) => ({ ...current, sourceText: text }));
+        return;
+      }
+      const source = createLongStorySource({
+        fileName: file.name,
+        byteSize: file.size,
+        text,
+        encoding,
       });
+      if (!source.units.length) throw new Error("没有在文件中识别到可分析的正文。");
+      setLongSource(source);
+      setFocusIndex(0);
+      setSession((current) => ({
+        ...current,
+        sourceText: buildContextPackage(source, 0),
+      }));
+    });
+  }
+
+  function selectFocus(index: number) {
+    if (!longSource || !longSource.units[index]) return;
+    setFocusIndex(index);
+    setSession((current) => ({
+      ...current,
+      sourceText: buildContextPackage(longSource, index),
+    }));
+    setError(undefined);
+  }
+
+  function sourceEvidence(terms: string[]) {
+    return longSource
+      ? retrieveSourceEvidence(longSource, focusIndex, terms)
+      : undefined;
   }
 
   function analyze() {
@@ -193,6 +229,11 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
       const response = await postJson<StartResponse>("/api/start", {
         worldCard,
         divergence,
+        sourceEvidence: sourceEvidence([
+          ...worldCard.characters.map((character) => character.name),
+          divergence.title,
+          divergence.moment,
+        ]),
       });
       if (!isCurrent()) return;
       setSession((current) =>
@@ -202,14 +243,20 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   }
 
   function propose(action: PendingAction) {
-    if (!session.worldCard || !session.divergence || !session.storyState || !session.frame) return;
+    const { worldCard, divergence, storyState, frame } = session;
+    if (!worldCard || !divergence || !storyState || !frame) return;
     void withTask("正在推演选择的后果…", async (isCurrent) => {
       const proposal = await postJson<TurnProposal>("/api/turn", {
-        worldCard: session.worldCard,
-        divergence: session.divergence,
-        currentScene: session.frame?.scene,
-        storyState: session.storyState,
+        worldCard,
+        divergence,
+        currentScene: frame.scene,
+        storyState,
         action,
+        sourceEvidence: sourceEvidence([
+          ...worldCard.characters.map((character) => character.name),
+          action.label,
+          frame.scene,
+        ]),
       });
       if (!isCurrent()) return;
       setSession((current) => ({ ...current, pendingAction: action, proposal }));
@@ -217,22 +264,21 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   }
 
   function regenerate(correction: string) {
-    if (
-      !session.worldCard ||
-      !session.divergence ||
-      !session.storyState ||
-      !session.frame ||
-      !session.pendingAction
-    )
-      return;
+    const { worldCard, divergence, storyState, frame, pendingAction } = session;
+    if (!worldCard || !divergence || !storyState || !frame || !pendingAction) return;
     void withTask("正在按修正意见重新推演…", async (isCurrent) => {
       const proposal = await postJson<TurnProposal>("/api/turn", {
-        worldCard: session.worldCard,
-        divergence: session.divergence,
-        currentScene: session.frame?.scene,
-        storyState: session.storyState,
-        action: session.pendingAction,
+        worldCard,
+        divergence,
+        currentScene: frame.scene,
+        storyState,
+        action: pendingAction,
         correction,
+        sourceEvidence: sourceEvidence([
+          ...worldCard.characters.map((character) => character.name),
+          pendingAction.label,
+          correction,
+        ]),
       });
       if (!isCurrent()) return;
       setSession((current) => ({ ...current, proposal }));
@@ -294,6 +340,8 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
       return;
     taskVersion.current += 1;
     window.localStorage.removeItem(STORAGE_KEY);
+    setLongSource(undefined);
+    setFocusIndex(0);
     setSession(EMPTY_SESSION);
     setError(undefined);
     setLoading(undefined);
@@ -317,15 +365,26 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
           sourceText={session.sourceText}
           loading={loading}
           error={error}
+          longSource={longSource}
+          focusIndex={focusIndex}
           onSourceChange={(sourceText) => {
             setSession((current) => ({ ...current, sourceText }));
             setError(undefined);
           }}
           onUseSample={() => {
+            setLongSource(undefined);
+            setFocusIndex(0);
             setSession((current) => ({ ...current, sourceText: sampleStory }));
             setError(undefined);
           }}
           onFile={readFile}
+          onFocusChange={selectFocus}
+          onClearLongSource={() => {
+            setLongSource(undefined);
+            setFocusIndex(0);
+            setSession((current) => ({ ...current, sourceText: "" }));
+            setError(undefined);
+          }}
           onAnalyze={analyze}
         />
       ) : null}

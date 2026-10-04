@@ -100,6 +100,53 @@ test("invalid input and model failure are recoverable", async ({ page }) => {
   await expect(page.getByLabel("原始故事")).toHaveValue("");
 });
 
+test("GB18030 long novel is navigated as a bounded context package", async ({ page }) => {
+  await enterDemo(page);
+
+  const chapterPrefix = Buffer.from("b5da", "hex");
+  const chapterSuffix = Buffer.from("d5c2b2e2cad4", "hex");
+  const bodyLine = Buffer.from(
+    "d5e2cac7d3c3d3dab3a4c6aab5bcc8ebb2e2cad4b5c4d5fdcec4a1a3",
+    "hex",
+  );
+  const chunks: Buffer[] = [];
+  for (let chapter = 1; chapter <= 16; chapter += 1) {
+    chunks.push(
+      chapterPrefix,
+      Buffer.from(String(chapter), "ascii"),
+      chapterSuffix,
+      Buffer.from("\n", "ascii"),
+    );
+    for (let line = 0; line < 60; line += 1) {
+      chunks.push(bodyLine, Buffer.from("\n", "ascii"));
+    }
+  }
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "long-story-gb18030.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.concat(chunks),
+  });
+
+  await expect(page.getByRole("region", { name: "长篇蓝本导航" })).toBeVisible();
+  await expect(page.getByLabel("长篇蓝本信息")).toContainText("GB18030");
+  await expect(page.getByLabel("长篇蓝本信息")).toContainText("16 章");
+  await page.getByLabel("焦点章节").selectOption({ label: "第10章测试" });
+
+  const context = await page.getByLabel("原始故事").inputValue();
+  expect(context.length).toBeLessThanOrEqual(12_000);
+  expect(context).toContain("【焦点章节】第10章测试");
+  expect(context).not.toContain("第12章测试");
+
+  await page.getByRole("button", { name: "提炼故事世界" }).click();
+  await expect(page.getByRole("heading", { name: "先确认哪些事实不能被改变。" })).toBeVisible();
+  await page.getByRole("button", { name: /把录音交给周明/ }).click();
+  await page.getByRole("button", { name: "从这里走向另一条路" }).click();
+  await page.getByRole("button", { name: /追问对方刚才话里的矛盾/ }).click();
+  await page.getByRole("button", { name: "推演这个选择" }).click();
+  await expect(page.getByTestId("turn-proposal")).toBeVisible();
+});
+
 test("review failure remains visible and retryable", async ({ page }) => {
   await enterDemo(page);
   await page.getByRole("button", { name: "使用原创悬疑示例" }).click();

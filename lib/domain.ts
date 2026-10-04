@@ -115,9 +115,17 @@ export const AnalyzeRequestSchema = z.object({
   sourceText: z.string().trim().min(400).max(12000),
 });
 
+export const SourceEvidenceSchema = z.object({
+  label: z.string().trim().min(1).max(120),
+  excerpt: z.string().trim().min(1).max(1800),
+});
+
+const SourceEvidenceListSchema = z.array(SourceEvidenceSchema).max(3).optional();
+
 export const StartRequestSchema = z.object({
   worldCard: StoryWorldCardSchema,
   divergence: DivergenceCandidateSchema,
+  sourceEvidence: SourceEvidenceListSchema,
 });
 
 export const TurnRequestSchema = z.object({
@@ -130,6 +138,7 @@ export const TurnRequestSchema = z.object({
     intent: z.string().trim().min(1).max(300),
   }),
   correction: z.string().trim().max(300).optional(),
+  sourceEvidence: SourceEvidenceListSchema,
 });
 
 export const ReviewRequestSchema = z.object({
@@ -152,6 +161,7 @@ export type SceneFrame = z.infer<typeof SceneFrameSchema>;
 export type StartResponse = z.infer<typeof StartResponseSchema>;
 export type TurnProposal = z.infer<typeof TurnProposalSchema>;
 export type StoryReview = z.infer<typeof StoryReviewSchema>;
+export type SourceEvidence = z.infer<typeof SourceEvidenceSchema>;
 export type AnalyzeRequest = z.infer<typeof AnalyzeRequestSchema>;
 export type StartRequest = z.infer<typeof StartRequestSchema>;
 export type TurnRequest = z.infer<typeof TurnRequestSchema>;

@@ -48,7 +48,8 @@ body::before {
 
 button,
 input,
-textarea {
+textarea,
+select {
   color: inherit;
   font: inherit;
 }
@@ -75,7 +76,8 @@ button:disabled {
 }
 
 input,
-textarea {
+textarea,
+select {
   border: 1px solid var(--line);
   background: rgba(0, 0, 0, 0.18);
   outline: none;
@@ -83,7 +85,8 @@ textarea {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   border-color: var(--amber);
   background: rgba(0, 0, 0, 0.27);
   box-shadow: 0 0 0 3px rgba(216, 168, 92, 0.1);
@@ -483,6 +486,13 @@ h2 {
   align-items: center;
 }
 
+.stage-grid > *,
+.paper-panel,
+.long-source-panel,
+.long-source-heading > div {
+  min-width: 0;
+}
+
 .stage-intro h1,
 .stage-heading h1,
 .play-header h1,
@@ -585,6 +595,84 @@ h2 {
 
 .story-input::placeholder {
   color: #6f7069;
+}
+
+.story-input.is-context-package {
+  min-height: 18rem;
+}
+
+.long-source-panel {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(216, 168, 92, 0.28);
+  background: rgba(216, 168, 92, 0.045);
+}
+
+.long-source-heading {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.long-source-heading h3 {
+  max-width: min(36rem, 100%);
+  margin: 0.3rem 0 0;
+  overflow: hidden;
+  font-family: ui-serif, "Songti SC", Georgia, serif;
+  font-size: 1rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.long-source-heading .text-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.source-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.9rem 0;
+}
+
+.source-stats span {
+  padding: 0.22rem 0.5rem;
+  color: var(--amber-bright);
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.13);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+}
+
+.long-source-search,
+.long-source-select {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.7rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.long-source-search input,
+.long-source-select select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0.66rem 0.75rem;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.long-source-note {
+  margin: 0.9rem 0 0;
+  color: var(--faint);
+  font-size: 0.72rem;
+  line-height: 1.6;
 }
 
 .input-meta {
