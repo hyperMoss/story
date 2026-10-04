@@ -70,12 +70,18 @@ export async function requestStructured<T>({
       "sourceText" in payload
     ) {
       const sourceText = String(payload.sourceText);
+      if (sourceText.includes("[测试：慢响应]")) {
+        await new Promise((resolve) => setTimeout(resolve, 700));
+      }
       if (sourceText.includes("[测试：模型失败]")) {
         throw new ModelGatewayError("模拟的模型服务失败，请重试。", "provider_error");
       }
       if (sourceText.includes("[测试：格式错误]")) {
         return validate(schema, { malformed: true });
       }
+    }
+    if (task === "review" && JSON.stringify(payload).includes("[测试：回顾失败]")) {
+      throw new ModelGatewayError("模拟的回顾生成失败，请重试。", "provider_error");
     }
     return validate(schema, fakeModelResponse(task, payload));
   }

@@ -1,11 +1,8 @@
 import type { DivergenceCandidate, StoryWorldCard } from "@/lib/domain";
 import { ErrorNotice, LoadingButton } from "@/components/stage-shell";
 
-function lines(value: string) {
-  return value
-    .split("\n")
-    .map((item) => item.trim())
-    .filter(Boolean);
+function draftLines(value: string) {
+  return value.split("\n");
 }
 
 export function WorldStage({
@@ -38,7 +35,7 @@ export function WorldStage({
       characterIndex === index
         ? {
             ...character,
-            [field]: field === "relationships" ? lines(value) : value,
+            [field]: field === "relationships" ? draftLines(value) : value,
           }
         : character,
     );
@@ -74,7 +71,7 @@ export function WorldStage({
             </label>
             <div className="character-grid">
               {worldCard.characters.map((character, index) => (
-                <article className="character-card" key={`${character.name}-${index}`}>
+                <article className="character-card" key={`character-${index}`}>
                   <span className="character-role">{index === 0 ? "主角" : `人物 ${index + 1}`}</span>
                   <label>
                     姓名
@@ -121,7 +118,7 @@ export function WorldStage({
                 className="list-editor"
                 value={worldCard.rules.join("\n")}
                 onChange={(event) =>
-                  onWorldCardChange({ ...worldCard, rules: lines(event.target.value) })
+                  onWorldCardChange({ ...worldCard, rules: draftLines(event.target.value) })
                 }
                 aria-label="世界规则，每行一条"
               />
@@ -135,7 +132,7 @@ export function WorldStage({
                 className="list-editor"
                 value={worldCard.originalPlot.join("\n")}
                 onChange={(event) =>
-                  onWorldCardChange({ ...worldCard, originalPlot: lines(event.target.value) })
+                  onWorldCardChange({ ...worldCard, originalPlot: draftLines(event.target.value) })
                 }
                 aria-label="原始剧情，每行一条"
               />

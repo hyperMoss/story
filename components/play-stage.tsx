@@ -144,6 +144,7 @@ export function PlayStage({
               <span className="kicker">FOUR CHOICES COMPLETE</span>
               <h2>这条新剧情线已经形成。</h2>
               <p>四个选择已经成为已接受事实。现在把它们整理成可以继续写作的回顾。</p>
+              <ErrorNotice message={error} />
               <LoadingButton
                 className="primary-button"
                 busy={Boolean(loading)}

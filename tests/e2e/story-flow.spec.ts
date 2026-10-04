@@ -15,6 +15,16 @@ test("author completes the four-round alternate timeline", async ({ page }) => {
   await page.getByRole("button", { name: "提炼故事世界" }).click();
 
   await expect(page.getByRole("heading", { name: "先确认哪些事实不能被改变。" })).toBeVisible();
+  const protagonistName = page.getByLabel("姓名").first();
+  await protagonistName.press("End");
+  await protagonistName.pressSequentially("修订");
+  await expect(protagonistName).toHaveValue("修订林夏");
+
+  const rules = page.getByLabel("世界规则，每行一条");
+  await rules.fill(`${await rules.inputValue()}\n`);
+  await rules.pressSequentially("作者新增规则");
+  await expect(rules).toHaveValue(/\n作者新增规则$/);
+
   const goalField = page.getByLabel("当前目标").first();
   await goalField.fill(`${await goalField.inputValue()}，并且不伤害任何人`);
   await page.getByRole("button", { name: /把录音交给周明/ }).click();
@@ -52,6 +62,13 @@ test("author completes the four-round alternate timeline", async ({ page }) => {
 
   await page.reload();
   await expect(page.getByRole("heading", { name: "闭馆之后：另一条走廊" })).toBeVisible();
+
+  await page.route("**/api/session", (route) => route.abort());
+  await page.reload();
+  await expect(page.getByLabel("演示访问码")).toBeVisible();
+  await page.unroute("**/api/session");
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "闭馆之后：另一条走廊" })).toBeVisible();
 });
 
 test("invalid input and model failure are recoverable", async ({ page }) => {
@@ -70,4 +87,39 @@ test("invalid input and model failure are recoverable", async ({ page }) => {
   await page.getByRole("button", { name: "使用原创悬疑示例" }).click();
   await page.getByRole("button", { name: "提炼故事世界" }).click();
   await expect(page.getByRole("heading", { name: "先确认哪些事实不能被改变。" })).toBeVisible();
+
+  await page.getByRole("button", { name: "返回修改原文" }).click();
+  const slowStory = `${"这是一个用于验证清除后旧请求不会恢复内容的原创故事。".repeat(24)}[测试：慢响应]`;
+  await page.getByLabel("原始故事").fill(slowStory);
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "提炼故事世界" }).click();
+  await page.getByRole("button", { name: "重新开始" }).click();
+  await page.waitForTimeout(900);
+  await expect(page.getByRole("heading", { name: /一段写完的故事/ })).toBeVisible();
+  await expect(page.getByLabel("原始故事")).toHaveValue("");
+});
+
+test("review failure remains visible and retryable", async ({ page }) => {
+  await enterDemo(page);
+  await page.getByRole("button", { name: "使用原创悬疑示例" }).click();
+  await page.getByRole("button", { name: "提炼故事世界" }).click();
+  await page.getByLabel("故事标题").fill("闭馆之后 [测试：回顾失败]");
+  await page.getByRole("button", { name: /把录音交给周明/ }).click();
+  await page.getByRole("button", { name: "从这里走向另一条路" }).click();
+
+  for (const round of [1, 2, 3, 4]) {
+    await page.getByRole("button", { name: /追问对方刚才话里的矛盾/ }).click();
+    await page.getByRole("button", { name: "推演这个选择" }).click();
+    await page.getByTestId("turn-proposal").waitFor();
+    await page
+      .getByRole("button", {
+        name: round === 4 ? "接受并生成回顾" : "接受，进入下一幕",
+      })
+      .click();
+  }
+
+  await expect(page.locator(".finalize-panel .error-notice")).toContainText(
+    "模拟的回顾生成失败",
+  );
+  await expect(page.getByRole("button", { name: "生成新剧情线回顾" })).toBeVisible();
 });
