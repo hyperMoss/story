@@ -109,6 +109,7 @@ test("GB18030 long novel is navigated as a bounded context package", async ({ pa
     "d5e2cac7d3c3d3dab3a4c6aab5bcc8ebb2e2cad4b5c4d5fdcec4a1a3",
     "hex",
   );
+  const slowMarker = Buffer.from("5bb2e2cad4a3bac2fdcfecd3a65d", "hex");
   const chunks: Buffer[] = [];
   for (let chapter = 1; chapter <= 16; chapter += 1) {
     chunks.push(
@@ -117,6 +118,7 @@ test("GB18030 long novel is navigated as a bounded context package", async ({ pa
       chapterSuffix,
       Buffer.from("\n", "ascii"),
     );
+    if (chapter === 10) chunks.push(slowMarker, Buffer.from("\n", "ascii"));
     for (let line = 0; line < 60; line += 1) {
       chunks.push(bodyLine, Buffer.from("\n", "ascii"));
     }
@@ -138,7 +140,20 @@ test("GB18030 long novel is navigated as a bounded context package", async ({ pa
   expect(context).toContain("【焦点章节】第10章测试");
   expect(context).not.toContain("第12章测试");
 
+  await page.getByLabel("原始故事").fill("这是另一个不应携带旧书证据的故事。".repeat(30));
+  await expect(page.getByRole("region", { name: "长篇蓝本导航" })).toBeHidden();
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "long-story-gb18030.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.concat(chunks),
+  });
+  await page.getByLabel("焦点章节").selectOption({ label: "第10章测试" });
+
   await page.getByRole("button", { name: "提炼故事世界" }).click();
+  await expect(page.getByLabel("焦点章节")).toBeDisabled();
+  await expect(page.getByLabel("原始故事")).toBeDisabled();
+  await expect(page.getByRole("button", { name: "移除蓝本" })).toBeDisabled();
   await expect(page.getByRole("heading", { name: "先确认哪些事实不能被改变。" })).toBeVisible();
   await page.getByRole("button", { name: /把录音交给周明/ }).click();
   await page.getByRole("button", { name: "从这里走向另一条路" }).click();

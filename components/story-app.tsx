@@ -178,12 +178,20 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   }
 
   function selectFocus(index: number) {
-    if (!longSource || !longSource.units[index]) return;
+    if (loading || !longSource || !longSource.units[index]) return;
     setFocusIndex(index);
     setSession((current) => ({
       ...current,
       sourceText: buildContextPackage(longSource, index),
     }));
+    setError(undefined);
+  }
+
+  function clearLongSource() {
+    if (loading) return;
+    setLongSource(undefined);
+    setFocusIndex(0);
+    setSession((current) => ({ ...current, sourceText: "" }));
     setError(undefined);
   }
 
@@ -368,6 +376,13 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
           longSource={longSource}
           focusIndex={focusIndex}
           onSourceChange={(sourceText) => {
+            if (
+              longSource &&
+              !sourceText.startsWith(`【长篇蓝本】${longSource.fileName}\n`)
+            ) {
+              setLongSource(undefined);
+              setFocusIndex(0);
+            }
             setSession((current) => ({ ...current, sourceText }));
             setError(undefined);
           }}
@@ -379,12 +394,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
           }}
           onFile={readFile}
           onFocusChange={selectFocus}
-          onClearLongSource={() => {
-            setLongSource(undefined);
-            setFocusIndex(0);
-            setSession((current) => ({ ...current, sourceText: "" }));
-            setError(undefined);
-          }}
+          onClearLongSource={clearLongSource}
           onAnalyze={analyze}
         />
       ) : null}

@@ -99,7 +99,12 @@ export function ImportStage({
                 <span className="panel-index">LONG-FORM BLUEPRINT</span>
                 <h3>{longSource.fileName}</h3>
               </div>
-              <button className="text-button" type="button" onClick={onClearLongSource}>
+              <button
+                className="text-button"
+                type="button"
+                disabled={Boolean(loading)}
+                onClick={onClearLongSource}
+              >
                 移除蓝本
               </button>
             </div>
@@ -118,6 +123,7 @@ export function ImportStage({
               <input
                 type="search"
                 value={chapterQuery}
+                disabled={Boolean(loading)}
                 placeholder="例如：山边小村"
                 onChange={(event) => setChapterQuery(event.target.value)}
               />
@@ -127,6 +133,7 @@ export function ImportStage({
               <select
                 aria-label="焦点章节"
                 value={focusIndex}
+                disabled={Boolean(loading)}
                 onChange={(event) => onFocusChange(Number(event.target.value))}
               >
                 {visibleUnits.length ? (
@@ -148,6 +155,7 @@ export function ImportStage({
         <textarea
           className={`story-input${longSource ? " is-context-package" : ""}`}
           value={sourceText}
+          disabled={Boolean(loading)}
           onChange={(event) => onSourceChange(event.target.value)}
           placeholder="粘贴一篇短篇故事或一个章节，或者直接导入完整长篇……"
           aria-label="原始故事"
