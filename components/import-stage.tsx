@@ -71,7 +71,12 @@ export function ImportStage({
         />
         <div className="input-meta">
           <label className="file-button">
-            <input type="file" accept=".txt,.md,text/plain,text/markdown" onChange={chooseFile} />
+            <input
+              type="file"
+              accept=".txt,.md,text/plain,text/markdown"
+              disabled={Boolean(loading)}
+              onChange={chooseFile}
+            />
             导入 .txt / .md
           </label>
           <span className={sourceText.length > 12000 ? "is-over" : ""}>

@@ -131,6 +131,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   }
 
   function readFile(file: File) {
+    if (loading) return;
     const version = ++taskVersion.current;
     setError(undefined);
     const extension = file.name.toLowerCase().split(".").pop();

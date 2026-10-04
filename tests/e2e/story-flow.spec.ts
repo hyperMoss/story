@@ -93,6 +93,7 @@ test("invalid input and model failure are recoverable", async ({ page }) => {
   await page.getByLabel("原始故事").fill(slowStory);
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "提炼故事世界" }).click();
+  await expect(page.locator('input[type="file"]')).toBeDisabled();
   await page.getByRole("button", { name: "重新开始" }).click();
   await page.waitForTimeout(900);
   await expect(page.getByRole("heading", { name: /一段写完的故事/ })).toBeVisible();
