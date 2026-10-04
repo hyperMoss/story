@@ -16,9 +16,17 @@ export type PendingAction = {
   intent: string;
 };
 
+export type LongSourceReference = {
+  kind: "long-form";
+  fileName: string;
+  focusLabel: string;
+  byteSize: number;
+};
+
 export type StorySession = {
   stage: AppStage;
   sourceText: string;
+  sourceReference?: LongSourceReference;
   analysis?: AnalysisResponse;
   worldCard?: StoryWorldCard;
   selectedDivergenceId?: string;
@@ -38,9 +46,17 @@ export const EMPTY_SESSION: StorySession = {
 export function isRestorableSession(value: unknown): value is StorySession {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<StorySession>;
+  const sourceReference = candidate.sourceReference;
+  const validSourceReference =
+    sourceReference === undefined ||
+    (sourceReference.kind === "long-form" &&
+      typeof sourceReference.fileName === "string" &&
+      typeof sourceReference.focusLabel === "string" &&
+      typeof sourceReference.byteSize === "number");
   return (
     ["import", "world", "play", "review"].includes(candidate.stage ?? "") &&
-    typeof candidate.sourceText === "string"
+    typeof candidate.sourceText === "string" &&
+    validSourceReference
   );
 }
 

@@ -10,13 +10,19 @@ const stages: Array<{ id: AppStage; label: string; eyebrow: string }> = [
 export function StageShell({
   stage,
   modelMode,
+  missingSourceFile,
+  sourceLoading,
   children,
   onStartOver,
+  onRestoreSource,
 }: {
   stage: AppStage;
   modelMode: "fake" | "live";
+  missingSourceFile?: string;
+  sourceLoading?: boolean;
   children: React.ReactNode;
   onStartOver: () => void;
+  onRestoreSource: (file: File) => void;
 }) {
   const currentIndex = stages.findIndex((item) => item.id === stage);
   return (
@@ -50,6 +56,30 @@ export function StageShell({
           </button>
         </div>
       </header>
+      {missingSourceFile ? (
+        <aside className="source-evidence-banner" role="status">
+          <div>
+            <strong>原文证据需重新导入</strong>
+            <p>
+              已恢复世界卡与剧情状态，但“{missingSourceFile}”的全文索引不会持久化。重新选择原文件后，后续推演才会继续引用焦点之前的原文证据。
+            </p>
+          </div>
+          <label className="secondary-button file-button">
+            <input
+              type="file"
+              aria-label="重新载入长篇蓝本"
+              accept=".txt,.md,text/plain,text/markdown"
+              disabled={sourceLoading}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) onRestoreSource(file);
+                event.target.value = "";
+              }}
+            />
+            {sourceLoading ? "正在恢复原文…" : "重新载入原文件"}
+          </label>
+        </aside>
+      ) : null}
       <div id="main" className="stage-container">
         {children}
       </div>

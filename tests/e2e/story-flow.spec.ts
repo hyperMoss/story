@@ -155,6 +155,17 @@ test("GB18030 long novel is navigated as a bounded context package", async ({ pa
   await expect(page.getByLabel("原始故事")).toBeDisabled();
   await expect(page.getByRole("button", { name: "移除蓝本" })).toBeDisabled();
   await expect(page.getByRole("heading", { name: "先确认哪些事实不能被改变。" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText("原文证据需重新导入")).toBeVisible();
+  await expect(page.getByText(/long-story-gb18030\.txt.*全文索引不会持久化/)).toBeVisible();
+  await page.getByLabel("重新载入长篇蓝本").setInputFiles({
+    name: "long-story-gb18030.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.concat(chunks),
+  });
+  await expect(page.getByText("原文证据需重新导入")).toBeHidden();
+
   await page.getByRole("button", { name: /把录音交给周明/ }).click();
   await page.getByRole("button", { name: "从这里走向另一条路" }).click();
   await page.getByRole("button", { name: /追问对方刚才话里的矛盾/ }).click();

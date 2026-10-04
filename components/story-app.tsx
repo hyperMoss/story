@@ -9,6 +9,7 @@ import {
   EMPTY_SESSION,
   isRestorableSession,
   sessionFromStart,
+  type LongSourceReference,
   type PendingAction,
   type StorySession,
 } from "@/components/session";
@@ -141,7 +142,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
     setAuthorized(true);
   }
 
-  function readFile(file: File) {
+  function loadFile(file: File, restoreReference?: LongSourceReference) {
     if (loading) return;
     const extension = file.name.toLowerCase().split(".").pop();
     if (!extension || !["txt", "md"].includes(extension)) {
@@ -152,13 +153,25 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
       setError("文件超过 20 MiB，请先拆分成较小的卷或篇章。");
       return;
     }
+    if (
+      restoreReference &&
+      (file.name !== restoreReference.fileName || file.size !== restoreReference.byteSize)
+    ) {
+      setError(`请选择原文件“${restoreReference.fileName}”以恢复原文证据。`);
+      return;
+    }
     void withTask("正在读取并整理故事结构…", async (isCurrent) => {
       const { text, encoding } = decodeStoryBuffer(await file.arrayBuffer());
       if (!isCurrent()) return;
       if (text.length <= DIRECT_SOURCE_LIMIT) {
+        if (restoreReference) throw new Error("所选文件与原长篇蓝本不匹配。");
         setLongSource(undefined);
         setFocusIndex(0);
-        setSession((current) => ({ ...current, sourceText: text }));
+        setSession((current) => ({
+          ...current,
+          sourceText: text,
+          sourceReference: undefined,
+        }));
         return;
       }
       const source = createLongStorySource({
@@ -168,13 +181,35 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
         encoding,
       });
       if (!source.units.length) throw new Error("没有在文件中识别到可分析的正文。");
+      const restoredFocusIndex = restoreReference
+        ? source.units.findIndex((unit) => unit.label === restoreReference.focusLabel)
+        : 0;
+      if (restoreReference && restoredFocusIndex < 0) {
+        throw new Error("原文件中没有找到之前选择的焦点章节，请重新开始并选择焦点。");
+      }
+      const nextFocusIndex = Math.max(restoredFocusIndex, 0);
       setLongSource(source);
-      setFocusIndex(0);
+      setFocusIndex(nextFocusIndex);
       setSession((current) => ({
         ...current,
-        sourceText: buildContextPackage(source, 0),
+        sourceText: buildContextPackage(source, nextFocusIndex),
+        sourceReference: {
+          kind: "long-form",
+          fileName: source.fileName,
+          focusLabel: source.units[nextFocusIndex].label,
+          byteSize: source.byteSize,
+        },
       }));
     });
+  }
+
+  function readFile(file: File) {
+    loadFile(file);
+  }
+
+  function restoreSource(file: File) {
+    if (!session.sourceReference) return;
+    loadFile(file, session.sourceReference);
   }
 
   function selectFocus(index: number) {
@@ -183,6 +218,12 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
     setSession((current) => ({
       ...current,
       sourceText: buildContextPackage(longSource, index),
+      sourceReference: {
+        kind: "long-form",
+        fileName: longSource.fileName,
+        focusLabel: longSource.units[index].label,
+        byteSize: longSource.byteSize,
+      },
     }));
     setError(undefined);
   }
@@ -191,7 +232,11 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
     if (loading) return;
     setLongSource(undefined);
     setFocusIndex(0);
-    setSession((current) => ({ ...current, sourceText: "" }));
+    setSession((current) => ({
+      ...current,
+      sourceText: "",
+      sourceReference: undefined,
+    }));
     setError(undefined);
   }
 
@@ -367,7 +412,16 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   if (!authorized) return <AccessGate onSubmit={unlock} />;
 
   return (
-    <StageShell stage={session.stage} modelMode={modelMode} onStartOver={startOver}>
+    <StageShell
+      stage={session.stage}
+      modelMode={modelMode}
+      missingSourceFile={
+        session.sourceReference && !longSource ? session.sourceReference.fileName : undefined
+      }
+      sourceLoading={Boolean(loading)}
+      onStartOver={startOver}
+      onRestoreSource={restoreSource}
+    >
       {session.stage === "import" ? (
         <ImportStage
           sourceText={session.sourceText}
@@ -383,13 +437,24 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
               setLongSource(undefined);
               setFocusIndex(0);
             }
-            setSession((current) => ({ ...current, sourceText }));
+            setSession((current) => ({
+              ...current,
+              sourceText,
+              sourceReference:
+                longSource && sourceText.startsWith(`【长篇蓝本】${longSource.fileName}\n`)
+                  ? current.sourceReference
+                  : undefined,
+            }));
             setError(undefined);
           }}
           onUseSample={() => {
             setLongSource(undefined);
             setFocusIndex(0);
-            setSession((current) => ({ ...current, sourceText: sampleStory }));
+            setSession((current) => ({
+              ...current,
+              sourceText: sampleStory,
+              sourceReference: undefined,
+            }));
             setError(undefined);
           }}
           onFile={readFile}
