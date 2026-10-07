@@ -44,17 +44,95 @@ function extractJson(content: string) {
   }
 }
 
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): UnknownRecord | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as UnknownRecord)
+    : undefined;
+}
+
+function capArray(value: unknown, maximum: number) {
+  return Array.isArray(value) ? value.slice(0, maximum) : value;
+}
+
+function normalizeWorldCard(value: unknown) {
+  const card = asRecord(value);
+  if (!card) return value;
+  const characters = Array.isArray(card.characters)
+    ? card.characters.slice(0, 8).map((character) => {
+        const item = asRecord(character);
+        return item ? { ...item, relationships: capArray(item.relationships, 8) } : character;
+      })
+    : card.characters;
+  return {
+    ...card,
+    characters,
+    rules: capArray(card.rules, 12),
+    originalPlot: capArray(card.originalPlot, 12),
+  };
+}
+
+function normalizeStoryState(value: unknown) {
+  const state = asRecord(value);
+  if (!state) return value;
+  const acceptedRounds = Array.isArray(state.acceptedRounds)
+    ? state.acceptedRounds.slice(0, 4).map((round) => {
+        const item = asRecord(round);
+        return item ? { ...item, stateChanges: capArray(item.stateChanges, 8) } : round;
+      })
+    : state.acceptedRounds;
+  return {
+    ...state,
+    characterStates: capArray(state.characterStates, 8),
+    relationships: capArray(state.relationships, 12),
+    risks: capArray(state.risks, 12),
+    unresolvedConflicts: capArray(state.unresolvedConflicts, 12),
+    acceptedRounds,
+  };
+}
+
 function normalizeStructuredResponse(task: ModelTask, value: unknown) {
-  if (task !== "turn" || typeof value !== "object" || value === null || Array.isArray(value)) {
-    return value;
+  const response = asRecord(value);
+  if (!response) return value;
+
+  if (task === "analyze") {
+    return {
+      ...response,
+      worldCard: normalizeWorldCard(response.worldCard),
+      divergenceCandidates: capArray(response.divergenceCandidates, 3),
+    };
   }
 
-  const response = value as Record<string, unknown>;
-  if (!Array.isArray(response.rationale) || response.rationale.length <= 4) {
-    return value;
+  if (task === "start") {
+    const frame = asRecord(response.frame);
+    return {
+      ...response,
+      frame: frame
+        ? { ...frame, suggestedActions: capArray(frame.suggestedActions, 3) }
+        : response.frame,
+      storyState: normalizeStoryState(response.storyState),
+    };
   }
 
-  return { ...response, rationale: response.rationale.slice(0, 4) };
+  if (task === "turn") {
+    return {
+      ...response,
+      nextActions: capArray(response.nextActions, 3),
+      stateChanges: capArray(response.stateChanges, 8),
+      rationale: capArray(response.rationale, 4),
+      nextState: normalizeStoryState(response.nextState),
+    };
+  }
+
+  return {
+    ...response,
+    choices: capArray(response.choices, 4),
+    differences: capArray(response.differences, 8),
+    characterChanges: capArray(response.characterChanges, 8),
+    unresolvedConflicts: capArray(response.unresolvedConflicts, 8),
+    preservedFacts: capArray(response.preservedFacts, 8),
+  };
 }
 
 function validate<T>(task: ModelTask, schema: ZodType<T>, value: unknown) {

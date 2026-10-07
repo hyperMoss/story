@@ -117,6 +117,20 @@ test("excess model rationale is bounded without losing the turn", async ({ page 
   await expect(proposal.locator(".rationale-list li")).toHaveCount(4);
 });
 
+test("excess analysis collections are bounded without losing the world card", async ({ page }) => {
+  await enterDemo(page);
+  await page
+    .getByLabel("原始故事")
+    .fill(`${"这是用于验证世界卡超量条目恢复的原创故事。".repeat(30)}[测试：世界卡条目过多]`);
+  await page.getByRole("button", { name: "提炼故事世界" }).click();
+
+  await expect(page.getByRole("heading", { name: "先确认哪些事实不能被改变。" })).toBeVisible();
+  const rules = await page.getByLabel("世界规则，每行一条").inputValue();
+  const originalPlot = await page.getByLabel("原始剧情，每行一条").inputValue();
+  expect(rules.split("\n")).toHaveLength(12);
+  expect(originalPlot.split("\n")).toHaveLength(12);
+});
+
 test("GB18030 long novel is navigated as a bounded context package", async ({ page }) => {
   await enterDemo(page);
 

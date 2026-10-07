@@ -109,6 +109,20 @@ function initialState(card: StoryWorldCard): StoryState {
 
 export function fakeModelResponse(task: ModelTask, payload: unknown): unknown {
   if (task === "analyze") {
+    const sourceText = String((payload as { sourceText?: unknown })?.sourceText ?? "");
+    if (sourceText.includes("[测试：世界卡条目过多]")) {
+      return {
+        worldCard: {
+          ...worldCard,
+          rules: [...worldCard.rules, ...Array.from({ length: 10 }, (_, index) => `额外规则 ${index + 1}`)],
+          originalPlot: [
+            ...worldCard.originalPlot,
+            ...Array.from({ length: 9 }, (_, index) => `额外事件 ${index + 1}`),
+          ],
+        },
+        divergenceCandidates: divergences,
+      };
+    }
     return { worldCard, divergenceCandidates: divergences };
   }
 
