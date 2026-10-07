@@ -51,7 +51,7 @@ STORY_MODEL_MODE=live
 STORY_MODEL_BASE_URL=https://你的模型服务/v1
 STORY_MODEL_API_KEY=服务端密钥
 STORY_MODEL_NAME=模型名称
-STORY_MODEL_TIMEOUT_MS=45000
+STORY_MODEL_TIMEOUT_MS=90000
 ```
 
 模型服务需要返回 `choices[0].message.content`。内容必须是符合各任务领域结构的 JSON；服务端会使用 Zod 校验，格式不完整时拒绝写入剧情状态并提示重试。

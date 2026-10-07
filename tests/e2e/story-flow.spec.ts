@@ -100,6 +100,23 @@ test("invalid input and model failure are recoverable", async ({ page }) => {
   await expect(page.getByLabel("原始故事")).toHaveValue("");
 });
 
+test("excess model rationale is bounded without losing the turn", async ({ page }) => {
+  await enterDemo(page);
+  await page.getByRole("button", { name: "使用原创悬疑示例" }).click();
+  await page.getByRole("button", { name: "提炼故事世界" }).click();
+  await page.getByRole("button", { name: /把录音交给周明/ }).click();
+  await page.getByRole("button", { name: "从这里走向另一条路" }).click();
+
+  await page
+    .getByPlaceholder("写下主角真正会做的事……")
+    .fill("[测试：推演依据过多] 先核对现场证据");
+  await page.getByRole("button", { name: "推演这个选择" }).click();
+
+  const proposal = page.getByTestId("turn-proposal");
+  await expect(proposal).toBeVisible();
+  await expect(proposal.locator(".rationale-list li")).toHaveCount(4);
+});
+
 test("GB18030 long novel is navigated as a bounded context package", async ({ page }) => {
   await enterDemo(page);
 

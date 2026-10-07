@@ -130,6 +130,13 @@ export function fakeModelResponse(task: ModelTask, payload: unknown): unknown {
   if (task === "turn") {
     const input = payload as TurnRequest;
     const round = input.storyState.acceptedRounds.length + 1;
+    const rationale = [
+      `“${input.action.label}”直接改变了双方的信息差，因此周明必须用行动而不是沉默回应。`,
+      "旧展厅锁死规则仍然成立，所以新的线索同时带来更强的时间压力。",
+    ];
+    if (input.action.label.includes("[测试：推演依据过多]")) {
+      rationale.push("额外依据一。", "额外依据二。", "额外依据三。");
+    }
     const correction = input.correction
       ? `她同时遵守了作者的修正：${input.correction}`
       : "她没有等待别人替她作出决定。";
@@ -147,10 +154,7 @@ export function fakeModelResponse(task: ModelTask, payload: unknown): unknown {
           summary: `林夏与周明之间的信任变得更脆弱，但周明开始认真回应她。`,
         },
       ],
-      rationale: [
-        `“${input.action.label}”直接改变了双方的信息差，因此周明必须用行动而不是沉默回应。`,
-        "旧展厅锁死规则仍然成立，所以新的线索同时带来更强的时间压力。",
-      ],
+      rationale,
       nextState: {
         ...input.storyState,
         situation: `林夏确认旧展厅内仍有人活动，并承受第 ${round} 轮选择带来的新压力。`,

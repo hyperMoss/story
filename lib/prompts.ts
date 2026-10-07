@@ -46,7 +46,7 @@ export const TURN_INSTRUCTION = `
     "risks":[""], "unresolvedConflicts":[""], "acceptedRounds":[]
   }
 }
-nextActions 必须恰好三个。场景应推进而非复述选择，保持角色边界和世界规则。`;
+nextActions 必须恰好三个；rationale 必须为 1～4 条。场景应推进而非复述选择，保持角色边界和世界规则。`;
 
 export const REVIEW_INSTRUCTION = `
 只根据作者确认的世界卡、分歧点、四个已接受回合和最终剧情状态，生成作者可继续使用的新剧情线回顾。

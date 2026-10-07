@@ -12,6 +12,8 @@ export class ModelGatewayError extends Error {
   }
 }
 
+const DEFAULT_MODEL_TIMEOUT_MS = 90_000;
+
 type StructuredRequest<T> = {
   task: ModelTask;
   instruction: string;
@@ -42,12 +44,26 @@ function extractJson(content: string) {
   }
 }
 
-function validate<T>(schema: ZodType<T>, value: unknown) {
-  const result = schema.safeParse(value);
+function normalizeStructuredResponse(task: ModelTask, value: unknown) {
+  if (task !== "turn" || typeof value !== "object" || value === null || Array.isArray(value)) {
+    return value;
+  }
+
+  const response = value as Record<string, unknown>;
+  if (!Array.isArray(response.rationale) || response.rationale.length <= 4) {
+    return value;
+  }
+
+  return { ...response, rationale: response.rationale.slice(0, 4) };
+}
+
+function validate<T>(task: ModelTask, schema: ZodType<T>, value: unknown) {
+  const normalized = normalizeStructuredResponse(task, value);
+  const result = schema.safeParse(normalized);
   if (!result.success) {
     console.error("Model response failed schema validation", result.error.issues);
     throw new ModelGatewayError(
-      "模型返回的信息不完整，已阻止它写入剧情，请重试。",
+      "模型返回的结构不符合要求，已阻止它写入剧情，请重试。",
       "invalid_model_response",
     );
   }
@@ -77,13 +93,13 @@ export async function requestStructured<T>({
         throw new ModelGatewayError("模拟的模型服务失败，请重试。", "provider_error");
       }
       if (sourceText.includes("[测试：格式错误]")) {
-        return validate(schema, { malformed: true });
+        return validate(task, schema, { malformed: true });
       }
     }
     if (task === "review" && JSON.stringify(payload).includes("[测试：回顾失败]")) {
       throw new ModelGatewayError("模拟的回顾生成失败，请重试。", "provider_error");
     }
-    return validate(schema, fakeModelResponse(task, payload));
+    return validate(task, schema, fakeModelResponse(task, payload));
   }
 
   if (mode !== "live") {
@@ -108,7 +124,13 @@ export async function requestStructured<T>({
   const endpoint = baseUrl.endsWith("/chat/completions")
     ? baseUrl
     : `${baseUrl}/chat/completions`;
-  const timeoutMs = Number(process.env.STORY_MODEL_TIMEOUT_MS ?? 45000);
+  const configuredTimeoutMs = Number(
+    process.env.STORY_MODEL_TIMEOUT_MS ?? DEFAULT_MODEL_TIMEOUT_MS,
+  );
+  const timeoutMs =
+    Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0
+      ? configuredTimeoutMs
+      : DEFAULT_MODEL_TIMEOUT_MS;
 
   let response: Response;
   try {
@@ -133,7 +155,7 @@ export async function requestStructured<T>({
           },
         ],
       }),
-      signal: AbortSignal.timeout(Number.isFinite(timeoutMs) ? timeoutMs : 45000),
+      signal: AbortSignal.timeout(timeoutMs),
       cache: "no-store",
     });
   } catch (error) {
@@ -159,5 +181,5 @@ export async function requestStructured<T>({
       "invalid_model_response",
     );
   }
-  return validate(schema, extractJson(content));
+  return validate(task, schema, extractJson(content));
 }
