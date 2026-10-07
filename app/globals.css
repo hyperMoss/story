@@ -657,6 +657,12 @@ h2 {
   white-space: nowrap;
 }
 
+.mode-badge.is-live {
+  color: #b9dbc3;
+  border-color: rgba(112, 184, 130, 0.38);
+  background: rgba(73, 143, 91, 0.14);
+}
+
 .long-source-heading .text-button {
   flex: 0 0 auto;
   white-space: nowrap;

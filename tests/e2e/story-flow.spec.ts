@@ -138,7 +138,11 @@ test("GB18030 long novel is navigated as a bounded context package", async ({ pa
   const context = await page.getByLabel("原始故事").inputValue();
   expect(context.length).toBeLessThanOrEqual(12_000);
   expect(context).toContain("【焦点章节】第10章测试");
-  expect(context).not.toContain("第12章测试");
+  expect(context).toContain("【前文 2：第8章测试】");
+  expect(context).toContain("【前文 1：第9章测试】");
+  expect(context).toContain("【后文 1：第11章测试】");
+  expect(context).toContain("【后文 2：第12章测试】");
+  await expect(page.getByText(/选择的是故事锚点，不是唯一发送内容/)).toBeVisible();
 
   await page.getByLabel("原始故事").fill("这是另一个不应携带旧书证据的故事。".repeat(30));
   await expect(page.getByRole("region", { name: "长篇蓝本导航" })).toBeHidden();

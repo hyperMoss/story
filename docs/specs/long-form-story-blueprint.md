@@ -49,7 +49,7 @@ tracker: local-fallback
 - Build a transient long-form source index in the browser. It contains file metadata and navigable reading units; it is not part of the persisted story session.
 - Recognize Chinese chapter headings. If a document has no reliable headings, split it at paragraph boundaries into labelled sections. Split any oversized chapter into labelled parts.
 - Call the author-selected reading unit the焦点章节 even when it represents one part of an oversized chapter.
-- Build a context package of at most 12,000 characters, prioritizing the complete focal unit, then bounded neighboring material. Include labels that distinguish focal and neighboring text.
+- Build a context package of at most 12,000 characters, prioritizing the complete focal unit, then up to two reading units before and after it. Include distance labels that distinguish focal and neighboring text, and explain in the UI that the selected unit is an anchor rather than the only material sent.
 - Put the context package into the existing editable source field. Analysis continues to use the existing validated request contract and world-card confirmation boundary.
 - Do not upload, cache, or persist the full long-form source. The server receives only the context package and bounded source-evidence excerpts.
 - Add an optional source-evidence contract to story start and turn requests. Permit no more than three excerpts, each no more than 1,800 characters.

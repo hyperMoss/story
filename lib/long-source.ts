@@ -2,6 +2,7 @@ import type { SourceEvidence } from "@/lib/domain";
 
 export const DIRECT_SOURCE_LIMIT = 12_000;
 export const LONG_FILE_LIMIT_BYTES = 20 * 1024 * 1024;
+export const CONTEXT_NEIGHBOR_RADIUS = 2;
 
 const READING_UNIT_LIMIT = 6_200;
 const EVIDENCE_EXCERPT_LIMIT = 1_600;
@@ -167,24 +168,46 @@ export function buildContextPackage(source: LongStorySource, focusIndex: number)
   const header = [
     `【长篇蓝本】${source.fileName}`,
     `【焦点章节】${focus.label}`,
-    "【说明】焦点之外的相邻文字只用于确认分歧前语境，不代表新剧情必须沿原作发展。",
+    `【上下文范围】自动带入焦点前后各最多 ${CONTEXT_NEIGHBOR_RADIUS} 个相邻阅读片段。`,
+    "【说明】相邻文字只用于理解人物和分歧语境，不代表新剧情必须沿原作发展。",
   ].join("\n");
-  const focusBlock = `【焦点原文】\n${takeStart(focus.content, 7_600)}`;
-  const reserved = header.length + focusBlock.length + 12;
-  const neighborBudget = Math.max(0, DIRECT_SOURCE_LIMIT - reserved);
-  const previous = source.units[safeIndex - 1];
-  const next = source.units[safeIndex + 1];
-  const previousBudget = next ? Math.floor(neighborBudget / 2) : neighborBudget;
-  const nextBudget = previous ? neighborBudget - previousBudget : neighborBudget;
-  const blocks = [header];
-
-  if (previous && previousBudget > 80) {
-    blocks.push(`【前文：${previous.label}】\n${takeEnd(previous.content, previousBudget - 18)}`);
-  }
-  blocks.push(focusBlock);
-  if (next && nextBudget > 80) {
-    blocks.push(`【后文：${next.label}】\n${takeStart(next.content, nextBudget - 18)}`);
-  }
+  const focusBlock = `【焦点原文】\n${takeStart(focus.content, READING_UNIT_LIMIT)}`;
+  const previous = Array.from({ length: CONTEXT_NEIGHBOR_RADIUS }, (_, offset) => {
+    const distance = CONTEXT_NEIGHBOR_RADIUS - offset;
+    const unit = source.units[safeIndex - distance];
+    return unit
+      ? { direction: "previous" as const, distance, unit }
+      : undefined;
+  }).filter((item) => item !== undefined);
+  const next = Array.from({ length: CONTEXT_NEIGHBOR_RADIUS }, (_, offset) => {
+    const distance = offset + 1;
+    const unit = source.units[safeIndex + distance];
+    return unit ? { direction: "next" as const, distance, unit } : undefined;
+  }).filter((item) => item !== undefined);
+  const neighbors = [...previous, ...next];
+  const headings = neighbors.map(({ direction, distance, unit }) =>
+    direction === "previous"
+      ? `【前文 ${distance}：${unit.label}】`
+      : `【后文 ${distance}：${unit.label}】`,
+  );
+  const separatorBudget = (neighbors.length + 1) * 2;
+  const fixedLength =
+    header.length +
+    focusBlock.length +
+    headings.reduce((total, heading) => total + heading.length + 1, 0) +
+    separatorBudget;
+  const perNeighborBudget = neighbors.length
+    ? Math.floor(Math.max(0, DIRECT_SOURCE_LIMIT - fixedLength) / neighbors.length)
+    : 0;
+  const previousBlocks = neighbors
+    .map((neighbor, index) => ({ neighbor, heading: headings[index] }))
+    .filter(({ neighbor }) => neighbor.direction === "previous" && perNeighborBudget > 80)
+    .map(({ neighbor, heading }) => `${heading}\n${takeEnd(neighbor.unit.content, perNeighborBudget)}`);
+  const nextBlocks = neighbors
+    .map((neighbor, index) => ({ neighbor, heading: headings[index] }))
+    .filter(({ neighbor }) => neighbor.direction === "next" && perNeighborBudget > 80)
+    .map(({ neighbor, heading }) => `${heading}\n${takeStart(neighbor.unit.content, perNeighborBudget)}`);
+  const blocks = [header, ...previousBlocks, focusBlock, ...nextBlocks];
 
   return blocks.join("\n\n").slice(0, DIRECT_SOURCE_LIMIT);
 }

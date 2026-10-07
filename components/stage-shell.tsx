@@ -50,7 +50,9 @@ export function StageShell({
           ))}
         </nav>
         <div className="topbar-actions">
-          {modelMode === "fake" ? <span className="mode-badge">本地假模型</span> : null}
+          <span className={`mode-badge is-${modelMode}`}>
+            {modelMode === "fake" ? "本地假模型" : "真实模型"}
+          </span>
           <button className="text-button" type="button" onClick={onStartOver}>
             重新开始
           </button>

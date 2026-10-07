@@ -1,6 +1,9 @@
 import { ChangeEvent, useMemo, useState } from "react";
 import { ErrorNotice, LoadingButton } from "@/components/stage-shell";
-import type { LongStorySource } from "@/lib/long-source";
+import {
+  CONTEXT_NEIGHBOR_RADIUS,
+  type LongStorySource,
+} from "@/lib/long-source";
 
 export function ImportStage({
   sourceText,
@@ -148,7 +151,9 @@ export function ImportStage({
               </select>
             </label>
             <p className="long-source-note">
-              下方是实际发送给模型的上下文包，可继续编辑。整本原文只留在当前页面；刷新后如需原文证据，需要重新导入。
+              选择的是故事锚点，不是唯一发送内容。系统会在 12,000 字预算内自动带入焦点前后各最多
+              {CONTEXT_NEIGHBOR_RADIUS} 个相邻片段；下方是实际发送给模型的内容，可继续编辑。
+              整本原文只留在当前页面；刷新后如需原文证据，需要重新导入。
             </p>
           </section>
         ) : null}
