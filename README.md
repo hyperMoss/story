@@ -58,6 +58,23 @@ STORY_MODEL_TIMEOUT_MS=90000
 
 部署前必须用真实模型完成一次“导入 → 世界卡 → 分歧点 → 至少四回合 → 阶段回顾与路线结局 → 继续推演”的人工验证。不要因为本地假模型测试通过就宣称真实模型已经可用。
 
+## Cloudflare 部署
+
+Worker 名为 `story`，构建产物由 [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare/get-started) 生成，配置见 `wrangler.jsonc` 与 `open-next.config.ts`。
+
+```bash
+pnpm run deploy
+pnpm run preview   # 本地以 workerd 预览部署产物
+```
+
+首次部署前先在 Cloudflare 侧写入运行时密钥，不要把它们提交进仓库：
+
+```bash
+pnpm exec wrangler secret put STORY_MODEL_API_KEY
+```
+
+Cloudflare Builds 的构建命令填 `pnpm run deploy`，部署命令留空。`package.json` 的 `name` 必须与 `wrangler.jsonc` 的 `name` 一致（都是 `story`），否则 OpenNext 的 `WORKER_SELF_REFERENCE` 自引用绑定会指向一个不存在的 Worker，部署会以错误码 `10143` 失败。
+
 ## 验证
 
 ```bash
