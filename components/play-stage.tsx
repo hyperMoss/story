@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { ChoicePath } from "@/components/choice-path";
 import type {
   SceneFrame,
   StoryState,
   TurnProposal,
 } from "@/lib/domain";
+import { MAX_STORY_ROUNDS, MIN_REVIEW_ROUNDS } from "@/lib/domain";
 import type { PendingAction } from "@/components/session";
 import { ErrorNotice, LoadingButton } from "@/components/stage-shell";
 
@@ -57,25 +59,32 @@ export function PlayStage({
       <div className="play-header">
         <div>
           <span className="kicker">03 / 新剧情线</span>
-          <h1>第 {Math.min(acceptedCount + 1, 4)} 个选择</h1>
+          <h1>
+            {acceptedCount >= MAX_STORY_ROUNDS
+              ? "当前阶段已经完成"
+              : `第 ${acceptedCount + 1} 个选择`}
+          </h1>
         </div>
-        <div className="round-track" aria-label={`已接受 ${acceptedCount} / 4 个回合`}>
-          {[1, 2, 3, 4].map((round) => (
-            <span
-              key={round}
-              className={round <= acceptedCount ? "is-done" : round === acceptedCount + 1 ? "is-current" : ""}
-            >
-              {round < 10 ? `0${round}` : round}
-            </span>
-          ))}
+        <div className="round-summary" aria-label={`已接受 ${acceptedCount} / ${MAX_STORY_ROUNDS} 个回合`}>
+          <strong>{String(acceptedCount).padStart(2, "0")}</strong>
+          <span>/ {MAX_STORY_ROUNDS} 已接受</span>
         </div>
       </div>
+
+      <ChoicePath
+        frame={frame}
+        storyState={storyState}
+        proposal={proposal}
+        pendingAction={pendingAction}
+      />
 
       <div className="play-layout">
         <div className="scene-column">
           <article className="scene-card">
             <div className="scene-topline">
-              <span>SCENE {String(Math.min(acceptedCount + 1, 4)).padStart(2, "0")}</span>
+              <span>
+                SCENE {String(Math.min(acceptedCount + 1, MAX_STORY_ROUNDS)).padStart(2, "0")}
+              </span>
               <em>当前已接受剧情</em>
             </div>
             <p>{frame.scene}</p>
@@ -135,22 +144,35 @@ export function PlayStage({
                   busy={Boolean(loading)}
                   onClick={onAccept}
                 >
-                  {loading || (acceptedCount === 3 ? "接受并生成回顾" : "接受，进入下一幕")}
+                  {loading ||
+                    (acceptedCount + 1 === MAX_STORY_ROUNDS
+                      ? "接受，完成本阶段"
+                      : "接受，进入下一幕")}
                 </LoadingButton>
               </div>
+              {acceptedCount >= MIN_REVIEW_ROUNDS ? (
+                <LoadingButton
+                  type="button"
+                  className="secondary-button proposal-review-button"
+                  busy={Boolean(loading)}
+                  onClick={onFinishReview}
+                >
+                  {loading || "仅回顾已接受路线"}
+                </LoadingButton>
+              ) : null}
             </article>
-          ) : acceptedCount >= 4 ? (
+          ) : acceptedCount >= MAX_STORY_ROUNDS ? (
             <div className="finalize-panel">
-              <span className="kicker">FOUR CHOICES COMPLETE</span>
-              <h2>这条新剧情线已经形成。</h2>
-              <p>四个选择已经成为已接受事实。现在把它们整理成可以继续写作的回顾。</p>
+              <span className="kicker">TWELVE CHOICES COMPLETE</span>
+              <h2>当前阶段已经走完。</h2>
+              <p>十二个选择已经成为已接受事实。先生成阶段回顾，再决定下一条路线。</p>
               <ErrorNotice message={error} />
               <LoadingButton
                 className="primary-button"
                 busy={Boolean(loading)}
                 onClick={onFinishReview}
               >
-                {loading || "生成新剧情线回顾"}
+                {loading || "生成阶段回顾"}
               </LoadingButton>
             </div>
           ) : (
@@ -191,15 +213,27 @@ export function PlayStage({
                 </label>
               </div>
               <ErrorNotice message={error} />
-              <LoadingButton
-                type="button"
-                className="primary-button wide-button"
-                busy={Boolean(loading)}
-                disabled={!activeAction}
-                onClick={() => activeAction && onPropose(activeAction)}
-              >
-                {loading || "推演这个选择"}
-              </LoadingButton>
+              <div className="play-action-buttons">
+                <LoadingButton
+                  type="button"
+                  className="primary-button"
+                  busy={Boolean(loading)}
+                  disabled={!activeAction}
+                  onClick={() => activeAction && onPropose(activeAction)}
+                >
+                  {loading || "推演这个选择"}
+                </LoadingButton>
+                {acceptedCount >= MIN_REVIEW_ROUNDS ? (
+                  <LoadingButton
+                    type="button"
+                    className="secondary-button"
+                    busy={Boolean(loading)}
+                    onClick={onFinishReview}
+                  >
+                    {loading || "生成阶段回顾"}
+                  </LoadingButton>
+                ) : null}
+              </div>
             </div>
           )}
           {proposal ? <ErrorNotice message={error} /> : null}
@@ -243,19 +277,6 @@ export function PlayStage({
               ))}
             </ul>
           </section>
-          {storyState.acceptedRounds.length ? (
-            <section>
-              <small>已接受选择</small>
-              <ol className="accepted-list">
-                {storyState.acceptedRounds.map((round) => (
-                  <li key={round.round}>
-                    <span>{String(round.round).padStart(2, "0")}</span>
-                    {round.action}
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ) : null}
         </aside>
       </div>
     </section>

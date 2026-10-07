@@ -23,6 +23,7 @@ import type {
   StoryWorldCard,
   TurnProposal,
 } from "@/lib/domain";
+import { MAX_STORY_ROUNDS, MIN_REVIEW_ROUNDS } from "@/lib/domain";
 import {
   buildContextPackage,
   createLongStorySource,
@@ -351,6 +352,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   function acceptProposal() {
     if (!session.proposal || !session.storyState || !session.pendingAction || !session.frame) return;
     const roundNumber = session.storyState.acceptedRounds.length + 1;
+    if (roundNumber > MAX_STORY_ROUNDS) return;
     const acceptedRound: AcceptedRound = {
       round: roundNumber,
       action: session.pendingAction.label,
@@ -372,17 +374,25 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
       proposal: undefined,
     };
     setSession(nextSession);
-    if (roundNumber === 4) {
-      void withTask("正在整理新剧情线…", (isCurrent) =>
-        requestReview(nextSession, isCurrent),
-      );
-    }
   }
 
   function finishReview() {
-    void withTask("正在整理新剧情线…", (isCurrent) =>
+    if ((session.storyState?.acceptedRounds.length ?? 0) < MIN_REVIEW_ROUNDS) {
+      setError(`至少接受 ${MIN_REVIEW_ROUNDS} 个选择后才能生成阶段回顾。`);
+      return;
+    }
+    void withTask("正在整理阶段回顾…", (isCurrent) =>
       requestReview(session, isCurrent),
     );
+  }
+
+  function continueStory() {
+    setSession((current) => ({
+      ...current,
+      stage: "play",
+      review: undefined,
+    }));
+    setError(undefined);
   }
 
   function startOver() {
@@ -499,7 +509,15 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
       ) : null}
 
       {session.stage === "review" && session.review ? (
-        <ReviewStage review={session.review} onStartOver={startOver} />
+        <ReviewStage
+          review={session.review}
+          canContinue={
+            (session.storyState?.acceptedRounds.length ?? MAX_STORY_ROUNDS) <
+            MAX_STORY_ROUNDS
+          }
+          onContinue={continueStory}
+          onStartOver={startOver}
+        />
       ) : null}
     </StageShell>
   );

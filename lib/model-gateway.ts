@@ -1,5 +1,6 @@
 import type { ZodType } from "zod";
 import { fakeModelResponse, type ModelTask } from "@/lib/fake-model";
+import { MAX_STORY_ROUNDS } from "@/lib/domain";
 
 export class ModelGatewayError extends Error {
   constructor(
@@ -77,7 +78,7 @@ function normalizeStoryState(value: unknown) {
   const state = asRecord(value);
   if (!state) return value;
   const acceptedRounds = Array.isArray(state.acceptedRounds)
-    ? state.acceptedRounds.slice(0, 4).map((round) => {
+    ? state.acceptedRounds.slice(0, MAX_STORY_ROUNDS).map((round) => {
         const item = asRecord(round);
         return item ? { ...item, stateChanges: capArray(item.stateChanges, 8) } : round;
       })
@@ -127,7 +128,7 @@ function normalizeStructuredResponse(task: ModelTask, value: unknown) {
 
   return {
     ...response,
-    choices: capArray(response.choices, 4),
+    choices: capArray(response.choices, MAX_STORY_ROUNDS),
     differences: capArray(response.differences, 8),
     characterChanges: capArray(response.characterChanges, 8),
     unresolvedConflicts: capArray(response.unresolvedConflicts, 8),

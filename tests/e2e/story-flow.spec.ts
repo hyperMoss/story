@@ -52,12 +52,18 @@ test("author completes the four-round alternate timeline", async ({ page }) => {
     await expect(page.getByTestId("turn-proposal")).toBeVisible();
     await page
       .getByRole("button", {
-        name: round === 4 ? "接受并生成回顾" : "接受，进入下一幕",
+        name: "接受，进入下一幕",
       })
       .click();
   }
 
+  await expect(page.getByRole("heading", { name: "第 5 个选择" })).toBeVisible();
+  const choicePath = page.getByRole("region", { name: "选择轨迹" });
+  await expect(choicePath).toBeVisible();
+  await expect(choicePath.locator(".choice-path-node.is-accepted")).toHaveCount(4);
+  await page.getByRole("button", { name: "生成阶段回顾" }).click();
   await expect(page.getByRole("heading", { name: "闭馆之后：另一条走廊" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "4 次关键选择" })).toBeVisible();
   await expect(page.getByRole("button", { name: "复制 Markdown" })).toBeVisible();
 
   await page.reload();
@@ -69,6 +75,20 @@ test("author completes the four-round alternate timeline", async ({ page }) => {
   await page.unroute("**/api/session");
   await page.reload();
   await expect(page.getByRole("heading", { name: "闭馆之后：另一条走廊" })).toBeVisible();
+
+  await page.getByRole("button", { name: "继续这条故事线" }).click();
+  await expect(page.getByRole("heading", { name: "第 5 个选择" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "选择轨迹" })).toBeVisible();
+  await page.getByRole("button", { name: /追问对方刚才话里的矛盾/ }).click();
+  await page.getByRole("button", { name: "推演这个选择" }).click();
+  await expect(page.getByRole("region", { name: "选择轨迹" })).toContainText("当前草案");
+  await expect(page.getByRole("region", { name: "选择轨迹" })).toContainText(
+    "追问对方刚才话里的矛盾",
+  );
+  await page.getByRole("button", { name: "仅回顾已接受路线" }).click();
+  await expect(page.getByRole("heading", { name: "4 次关键选择" })).toBeVisible();
+  await page.getByRole("button", { name: "继续这条故事线" }).click();
+  await expect(page.getByTestId("turn-proposal")).toBeVisible();
 });
 
 test("invalid input and model failure are recoverable", async ({ page }) => {
@@ -208,27 +228,29 @@ test("GB18030 long novel is navigated as a bounded context package", async ({ pa
   await expect(page.getByTestId("turn-proposal")).toBeVisible();
 });
 
-test("review failure remains visible and retryable", async ({ page }) => {
+test("misaligned review remains visible and retryable", async ({ page }) => {
   await enterDemo(page);
   await page.getByRole("button", { name: "使用原创悬疑示例" }).click();
   await page.getByRole("button", { name: "提炼故事世界" }).click();
-  await page.getByLabel("故事标题").fill("闭馆之后 [测试：回顾失败]");
+  await page.getByLabel("故事标题").fill("闭馆之后 [测试：回顾回合错位]");
   await page.getByRole("button", { name: /把录音交给周明/ }).click();
   await page.getByRole("button", { name: "从这里走向另一条路" }).click();
 
   for (const round of [1, 2, 3, 4]) {
+    await expect(page.getByRole("heading", { name: `第 ${round} 个选择` })).toBeVisible();
     await page.getByRole("button", { name: /追问对方刚才话里的矛盾/ }).click();
     await page.getByRole("button", { name: "推演这个选择" }).click();
     await page.getByTestId("turn-proposal").waitFor();
     await page
       .getByRole("button", {
-        name: round === 4 ? "接受并生成回顾" : "接受，进入下一幕",
+        name: "接受，进入下一幕",
       })
       .click();
   }
 
-  await expect(page.locator(".finalize-panel .error-notice")).toContainText(
-    "模拟的回顾生成失败",
+  await page.getByRole("button", { name: "生成阶段回顾" }).click();
+  await expect(page.locator(".action-section .error-notice")).toContainText(
+    "没有覆盖全部已接受选择",
   );
-  await expect(page.getByRole("button", { name: "生成新剧情线回顾" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "生成阶段回顾" })).toBeVisible();
 });

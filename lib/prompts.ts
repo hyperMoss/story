@@ -27,7 +27,7 @@ export const START_INSTRUCTION = `
     "risks":[""], "unresolvedConflicts":[""], "acceptedRounds":[]
   }
 }
-suggestedActions 必须恰好三个，彼此导向不同后果。主角是世界卡中的第一位核心人物。`;
+suggestedActions 必须恰好三个，彼此导向不同后果。主角是世界卡中的第一位核心人物。初始场景应包含具体环境、人物动作与必要对白，约 400～800 个中文字符。`;
 
 export const TURN_INSTRUCTION = `
 根据已接受剧情状态、当前场景和作者选择的行动，提出下一幕推演草案。
@@ -46,10 +46,10 @@ export const TURN_INSTRUCTION = `
     "risks":[""], "unresolvedConflicts":[""], "acceptedRounds":[]
   }
 }
-nextActions 必须恰好三个；rationale 必须为 1～4 条。场景应推进而非复述选择，保持角色边界和世界规则。`;
+nextActions 必须恰好三个；rationale 必须为 1～4 条。resultScene 应以具体动作、对白、环境反应和后果推进剧情，约 500～900 个中文字符，不要只做摘要；保持角色边界和世界规则。`;
 
 export const REVIEW_INSTRUCTION = `
-只根据作者确认的世界卡、分歧点、四个已接受回合和最终剧情状态，生成作者可继续使用的新剧情线回顾。
+只根据作者确认的世界卡、分歧点、当前 4～12 个已接受回合和剧情状态，生成作者可继续使用的阶段回顾。
 返回 JSON：
 {
   "title":"新剧情线标题", "synopsis":"完整梗概",
@@ -59,4 +59,4 @@ export const REVIEW_INSTRUCTION = `
   "unresolvedConflicts":[""], "preservedFacts":["始终遵守的世界事实"],
   "markdown":"包含以上内容的完整 Markdown"
 }
-choices 必须恰好四项，并与已接受回合一致。`;
+choices 必须覆盖全部已接受回合，数量与输入一致。阶段回顾是当前进展的快照，不代表故事已经结束。`;

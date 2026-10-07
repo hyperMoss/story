@@ -5,6 +5,7 @@ import type {
   StoryWorldCard,
   TurnRequest,
 } from "@/lib/domain";
+import { MAX_STORY_ROUNDS } from "@/lib/domain";
 
 export type ModelTask = "analyze" | "start" | "turn" | "review";
 
@@ -157,7 +158,7 @@ export function fakeModelResponse(task: ModelTask, payload: unknown): unknown {
     const newRisk = `第 ${round} 轮后，馆内可用时间进一步缩短`;
     return {
       resultScene: `${input.storyState.protagonistName}选择“${input.action.label}”。${correction} 周明短暂地移开视线，旧展厅里随即传来金属柜门合拢的回声。这个反应没有直接给出答案，却让她确认有人正在利用断电前的最后几分钟转移东西。`,
-      nextActions: actionSet(Math.min(round + 1, 4)),
+      nextActions: actionSet(Math.min(round + 1, MAX_STORY_ROUNDS)),
       stateChanges: [
         {
           area: "risk",
@@ -190,16 +191,23 @@ export function fakeModelResponse(task: ModelTask, payload: unknown): unknown {
 
   const input = payload as { storyState: StoryState; worldCard: StoryWorldCard };
   const rounds = input.storyState.acceptedRounds;
-  const choices = rounds.map((round) => ({
+  const choiceCount = rounds.length;
+  let choices = rounds.map((round) => ({
     round: round.round,
     action: round.action,
     result: round.stateChanges.map((change) => change.summary).join("；"),
   }));
+  if (input.worldCard.title.includes("[测试：回顾回合错位]")) {
+    choices = choices.map((choice, index) =>
+      index === choices.length - 1 ? { ...choice, round: 1 } : choice,
+    );
+  }
+  const synopsis = `林夏没有沿着原始故事独自潜入，而是在不断交换信息与承担风险的过程中迫使周明参与调查。${choiceCount} 次选择让秘密从个人追踪变成一场随时可能破裂的有限合作。`;
   const markdown = [
     "# 闭馆之后：另一条走廊",
     "",
     "## 新剧情梗概",
-    "林夏没有沿着原始故事独自潜入，而是在不断交换信息与承担风险的过程中迫使周明参与调查。四次选择让秘密从个人追踪变成一场随时可能破裂的有限合作。",
+    synopsis,
     "",
     "## 关键选择",
     ...choices.map((choice) => `${choice.round}. **${choice.action}**：${choice.result}`),
@@ -209,8 +217,7 @@ export function fakeModelResponse(task: ModelTask, payload: unknown): unknown {
   ].join("\n");
   const review: StoryReview = {
     title: "闭馆之后：另一条走廊",
-    synopsis:
-      "林夏没有沿着原始故事独自潜入，而是在不断交换信息与承担风险的过程中迫使周明参与调查。四次选择让秘密从个人追踪变成一场随时可能破裂的有限合作。",
+    synopsis,
     choices,
     differences: [
       "林夏没有独自潜入地下库房，而是让周明成为不稳定的同行者。",

@@ -11,7 +11,7 @@ tracker: local-fallback
 
 ## Solution
 
-构建一个名为“岔路”的单人 Web 产品。故事作者粘贴短篇或章节，或导入 `.txt/.md`，由真实文本模型提炼可编辑的故事世界卡和三个分歧候选。作者选定分歧点后接管原故事主角，在四个场景回合中从三个建议行动或一个自定义行动中做选择。每次推演先作为草案展示状态变化和简短依据，只有作者接受后才提交到结构化剧情状态；作者也可提供一句修正意见，从相同的已接受状态重新推演。四轮结束后生成可复制的 Markdown 新剧情线回顾。
+构建一个名为“岔路”的单人 Web 产品。故事作者粘贴短篇或章节，或导入 `.txt/.md`，由真实文本模型提炼可编辑的故事世界卡和三个分歧候选。作者选定分歧点后接管原故事主角，在 4～12 个场景回合中从三个建议行动或一个自定义行动中做选择。每次推演先作为草案展示状态变化和简短依据，只有作者接受后才提交到结构化剧情状态；作者也可提供一句修正意见，从相同的已接受状态重新推演。四轮以后可随时生成可复制的 Markdown 阶段回顾，并返回当前路线继续。
 
 产品以原创当代悬疑示例保障首次体验，以浏览器本地存储恢复进度，以服务端环境变量保护模型密钥和演示访问码。服务端不持久化故事内容。
 
@@ -36,8 +36,8 @@ tracker: local-fallback
 17. As a 故事作者, I want a concise causal explanation tied to my action and established world facts, so that I can judge whether the proposal is coherent.
 18. As a 故事作者, I want to accept a proposal, so that it becomes the only state used by subsequent rounds.
 19. As a 故事作者, I want to reject a proposal with one correction instruction, so that the model can retry without advancing the round or polluting accepted state.
-20. As a 故事作者, I want exactly four accepted scene rounds in the MVP, so that the experience reaches a deliberate conclusion instead of becoming an endless generator.
-21. As a 故事作者, I want a final synopsis, decision timeline, original-plot differences, character changes, preserved facts, and unresolved conflicts, so that the exploration becomes usable writing material.
+20. As a 故事作者, I want four rounds to unlock a staged review and a twelve-round upper bound, so that I can continue a useful storyline without creating an endless generator.
+21. As a 故事作者, I want a choice path and staged synopsis, decision timeline, original-plot differences, character changes, preserved facts, and unresolved conflicts, so that the exploration becomes usable writing material.
 22. As a 故事作者, I want to copy the final result as Markdown, so that I can continue working in my preferred writing tool.
 23. As a returning author, I want my current session restored after a refresh, so that an accidental reload does not erase accepted work.
 24. As a 故事作者, I want to clear local progress and start over, so that I remain in control of locally retained content.
@@ -57,7 +57,7 @@ tracker: local-fallback
 - Use an explicit structured story state containing the confirmed world card, chosen divergence, protagonist situation, character states, relationships, risks, unresolved conflicts, and accepted rounds.
 - Separate the current accepted state from a turn proposal. A proposal contains the resulting scene, three next suggested actions, state changes, concise rationale, and proposed next state. Only acceptance commits it.
 - Regeneration with a correction instruction uses the same accepted state, current scene, and selected action. It replaces the proposal but does not increase the accepted-round count.
-- Finish after four accepted rounds. Generate the final review only from confirmed world facts, the chosen divergence, accepted rounds, and final accepted state.
+- Unlock staged review after four accepted rounds, allow continuing from a review, and stop the current stage after twelve. Generate each review only from confirmed world facts, the chosen divergence, accepted rounds, and current accepted state.
 - Save the current session in browser local storage. Never persist source stories or generated content on the application server.
 - Support pasted text, UTF-8 `.txt` and `.md` files, and one bundled original suspense sample. Reject unsupported formats and enforce a bounded source length with clear feedback.
 - Present the experience as a restrained suspense text-adventure stage with readable long-form typography, transitions, action cards, a progress rail, and an author-facing state panel. Do not generate images.
@@ -69,7 +69,7 @@ tracker: local-fallback
 
 - Test external behavior rather than internal functions or prompt wording.
 - Use one primary automated seam: a browser-level end-to-end test running the complete application against the deterministic fake model gateway.
-- The main happy-path test covers access, built-in example, analysis, author edits, divergence selection, suggested and custom actions, correction regeneration, four accepted rounds, final review, Markdown copy availability, and local session recovery.
+- The main happy-path test covers access, built-in example, analysis, author edits, divergence selection, suggested and custom actions, correction regeneration, four accepted rounds, staged review, continuation to round five, choice-path visibility, Markdown copy availability, and local session recovery.
 - Additional browser scenarios cover invalid source input, failed or malformed model responses, safe retry, and clearing local progress.
 - Exercise server validation through the same browser flow by configuring the fake gateway to produce a controlled malformed or failed response; do not duplicate behavior with low-level route tests unless the browser seam cannot express it.
 - Perform a separate manual smoke test against the configured real model after deployment. This verifies provider compatibility and content quality but is not an automated assertion because it is nondeterministic and incurs cost.

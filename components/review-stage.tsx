@@ -3,9 +3,13 @@ import type { StoryReview } from "@/lib/domain";
 
 export function ReviewStage({
   review,
+  canContinue,
+  onContinue,
   onStartOver,
 }: {
   review: StoryReview;
+  canContinue: boolean;
+  onContinue: () => void;
   onStartOver: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -20,10 +24,15 @@ export function ReviewStage({
     <section className="review-stage">
       <div className="review-hero">
         <span className="kicker">04 / NEW TIMELINE</span>
-        <p>四个选择以后，你带回了这一条故事线。</p>
+        <p>{review.choices.length} 个选择以后，这是当前路线的阶段回顾。</p>
         <h1>{review.title}</h1>
         <div className="review-actions">
-          <button className="primary-button" type="button" onClick={copyMarkdown}>
+          {canContinue ? (
+            <button className="primary-button" type="button" onClick={onContinue}>
+              继续这条故事线
+            </button>
+          ) : null}
+          <button className="secondary-button" type="button" onClick={copyMarkdown}>
             {copied ? "已复制 Markdown" : "复制 Markdown"}
           </button>
           <button className="secondary-button" type="button" onClick={onStartOver}>
@@ -35,13 +44,13 @@ export function ReviewStage({
       <div className="review-grid">
         <article className="review-summary">
           <span className="panel-index">SYNOPSIS</span>
-          <h2>新剧情梗概</h2>
+          <h2>阶段剧情梗概</h2>
           <p>{review.synopsis}</p>
         </article>
 
         <article className="timeline-panel">
-          <span className="panel-index">FOUR DECISIONS</span>
-          <h2>四次关键选择</h2>
+          <span className="panel-index">DECISIONS</span>
+          <h2>{review.choices.length} 次关键选择</h2>
           <ol className="review-timeline">
             {review.choices.map((choice) => (
               <li key={choice.round}>

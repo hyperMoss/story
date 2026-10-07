@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+export const MIN_REVIEW_ROUNDS = 4;
+export const MAX_STORY_ROUNDS = 12;
+
 const ShortText = z.string().trim().min(1).max(240);
 const Paragraph = z.string().trim().min(1).max(2400);
 
@@ -37,7 +40,7 @@ export const StateChangeSchema = z.object({
 });
 
 export const AcceptedRoundSchema = z.object({
-  round: z.number().int().min(1).max(4),
+  round: z.number().int().min(1).max(MAX_STORY_ROUNDS),
   action: z.string().trim().min(1).max(240),
   scene: Paragraph,
   stateChanges: z.array(StateChangeSchema).min(1).max(8),
@@ -66,7 +69,7 @@ export const StoryStateSchema = z.object({
     .max(12),
   risks: z.array(ShortText).max(12),
   unresolvedConflicts: z.array(ShortText).max(12),
-  acceptedRounds: z.array(AcceptedRoundSchema).max(4),
+  acceptedRounds: z.array(AcceptedRoundSchema).max(MAX_STORY_ROUNDS),
 });
 
 export const AnalysisResponseSchema = z.object({
@@ -98,12 +101,13 @@ export const StoryReviewSchema = z.object({
   choices: z
     .array(
       z.object({
-        round: z.number().int().min(1).max(4),
+        round: z.number().int().min(1).max(MAX_STORY_ROUNDS),
         action: ShortText,
         result: ShortText,
       }),
     )
-    .length(4),
+    .min(MIN_REVIEW_ROUNDS)
+    .max(MAX_STORY_ROUNDS),
   differences: z.array(ShortText).min(1).max(8),
   characterChanges: z.array(ShortText).min(1).max(8),
   unresolvedConflicts: z.array(ShortText).max(8),
@@ -145,8 +149,8 @@ export const ReviewRequestSchema = z.object({
   worldCard: StoryWorldCardSchema,
   divergence: DivergenceCandidateSchema,
   storyState: StoryStateSchema.refine(
-    (state) => state.acceptedRounds.length === 4,
-    "需要四个已接受回合才能生成回顾",
+    (state) => state.acceptedRounds.length >= MIN_REVIEW_ROUNDS,
+    `至少需要 ${MIN_REVIEW_ROUNDS} 个已接受回合才能生成阶段回顾`,
   ),
 });
 
