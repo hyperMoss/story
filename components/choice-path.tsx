@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   SceneFrame,
   StoryState,
@@ -26,6 +26,37 @@ export function ChoicePath({
   const currentLabel = proposal ? "当前草案" : "等待选择";
   const currentAction = proposal ? pendingAction?.label ?? "当前行动" : "下一步尚未决定";
   const currentResult = proposal?.resultScene ?? frame.scene;
+  const nodes = [
+    ...storyState.acceptedRounds.map((round) => ({
+      id: `round-${round.round}`,
+      round: round.round,
+      status: "已接受",
+      detailLabel: "已接受结果",
+      action: round.action,
+      result: round.scene,
+      accepted: true,
+      proposal: false,
+    })),
+    ...(acceptedCount < MAX_STORY_ROUNDS
+      ? [
+          {
+            id: `round-${currentRound}`,
+            round: currentRound,
+            status: currentLabel,
+            detailLabel: proposal ? "当前草案" : "当前场景",
+            action: currentAction,
+            result: currentResult,
+            accepted: false,
+            proposal: Boolean(proposal),
+          },
+        ]
+      : []),
+  ];
+  const defaultNodeId = nodes.at(-1)?.id ?? "round-0";
+  const [selectedNodeId, setSelectedNodeId] = useState(defaultNodeId);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string>();
+  const activeNodeId = hoveredNodeId ?? selectedNodeId;
+  const activeNode = nodes.find((node) => node.id === activeNodeId) ?? nodes.at(-1);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -40,39 +71,55 @@ export function ChoicePath({
           <span className="panel-index">CHOICE PATH</span>
           <h2>选择轨迹 · 当前路线</h2>
         </div>
-        <p>保留已接受行动及结果；当前草案只有接受后才会写入路线。</p>
+        <p>节点仅展示路线摘要；悬停、聚焦或点击节点可查看完整行动与结果。</p>
       </div>
       <div className="choice-path-scroll" ref={scrollRef}>
         <div className="choice-path-flow">
-          <article className="choice-path-root">
+          <div className="choice-path-root" aria-label="剧情分歧点">
             <span>00</span>
             <strong>分歧点</strong>
-            <p>新剧情线从这里开始</p>
-          </article>
+          </div>
           <ol className="choice-path-list">
-            {storyState.acceptedRounds.map((round) => (
-              <li className="choice-path-node is-accepted" key={round.round}>
-                <div className="choice-path-node-topline">
-                  <span>{String(round.round).padStart(2, "0")}</span>
-                  <em>已接受</em>
-                </div>
-                <strong>{round.action}</strong>
-                <p>{round.scene}</p>
+            {nodes.map((node) => (
+              <li
+                className={`choice-path-node${node.accepted ? " is-accepted" : " is-current"}${node.proposal ? " has-proposal" : ""}${activeNode?.id === node.id ? " is-active" : ""}`}
+                key={node.id}
+              >
+                <button
+                  type="button"
+                  className="choice-path-node-button"
+                  aria-label={`查看第 ${node.round} 个选择详情`}
+                  aria-pressed={selectedNodeId === node.id}
+                  aria-describedby="choice-path-detail"
+                  onMouseEnter={() => setHoveredNodeId(node.id)}
+                  onMouseLeave={() => setHoveredNodeId(undefined)}
+                  onFocus={() => setHoveredNodeId(node.id)}
+                  onBlur={() => setHoveredNodeId(undefined)}
+                  onClick={() => setSelectedNodeId(node.id)}
+                >
+                  <span>{String(node.round).padStart(2, "0")}</span>
+                  <em>{node.status}</em>
+                  <strong>{node.action}</strong>
+                </button>
               </li>
             ))}
-            {acceptedCount < MAX_STORY_ROUNDS ? (
-              <li className={`choice-path-node is-current${proposal ? " has-proposal" : ""}`}>
-                <div className="choice-path-node-topline">
-                  <span>{String(currentRound).padStart(2, "0")}</span>
-                  <em>{currentLabel}</em>
-                </div>
-                <strong>{currentAction}</strong>
-                <p>{currentResult}</p>
-              </li>
-            ) : null}
           </ol>
         </div>
       </div>
+      {activeNode ? (
+        <article
+          id="choice-path-detail"
+          className={`choice-path-detail${activeNode.proposal ? " has-proposal" : ""}`}
+          aria-live="polite"
+        >
+          <div className="choice-path-detail-topline">
+            <span>节点 {String(activeNode.round).padStart(2, "0")}</span>
+            <em>{activeNode.detailLabel}</em>
+          </div>
+          <h3>{activeNode.action}</h3>
+          <p>{activeNode.result}</p>
+        </article>
+      ) : null}
     </section>
   );
 }

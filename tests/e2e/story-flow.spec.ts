@@ -61,6 +61,16 @@ test("author completes the four-round alternate timeline", async ({ page }) => {
   const choicePath = page.getByRole("region", { name: "选择轨迹" });
   await expect(choicePath).toBeVisible();
   await expect(choicePath.locator(".choice-path-node.is-accepted")).toHaveCount(4);
+  const firstChoiceNode = choicePath.getByRole("button", { name: /查看第 1 个选择/ });
+  await expect(firstChoiceNode).toBeVisible();
+  await firstChoiceNode.hover();
+  await expect(choicePath.locator(".choice-path-detail")).toContainText(
+    "追问对方刚才话里的矛盾",
+  );
+  await firstChoiceNode.click();
+  await page.getByRole("heading", { name: "第 5 个选择" }).hover();
+  await expect(firstChoiceNode).toHaveAttribute("aria-pressed", "true");
+  await expect(choicePath.locator(".choice-path-detail")).toContainText("已接受结果");
   await page.getByRole("button", { name: "生成阶段回顾与结局" }).click();
   await expect(page.getByRole("heading", { name: "闭馆之后：另一条走廊" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "4 次关键选择" })).toBeVisible();
