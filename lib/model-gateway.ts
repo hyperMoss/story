@@ -126,6 +126,7 @@ function normalizeStructuredResponse(task: ModelTask, value: unknown) {
     };
   }
 
+  const ending = asRecord(response.ending);
   return {
     ...response,
     choices: capArray(response.choices, MAX_STORY_ROUNDS),
@@ -133,6 +134,12 @@ function normalizeStructuredResponse(task: ModelTask, value: unknown) {
     characterChanges: capArray(response.characterChanges, 8),
     unresolvedConflicts: capArray(response.unresolvedConflicts, 8),
     preservedFacts: capArray(response.preservedFacts, 8),
+    ending: ending
+      ? {
+          ...ending,
+          choicePayoffs: capArray(ending.choicePayoffs, MAX_STORY_ROUNDS),
+        }
+      : response.ending,
   };
 }
 

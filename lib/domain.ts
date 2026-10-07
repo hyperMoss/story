@@ -5,6 +5,7 @@ export const MAX_STORY_ROUNDS = 12;
 
 const ShortText = z.string().trim().min(1).max(240);
 const Paragraph = z.string().trim().min(1).max(2400);
+const Narrative = z.string().trim().min(1).max(6000);
 
 export const CharacterSchema = z.object({
   name: z.string().trim().min(1).max(40),
@@ -95,7 +96,7 @@ export const TurnProposalSchema = z.object({
   nextState: StoryStateSchema,
 });
 
-export const StoryReviewSchema = z.object({
+export const StoryReviewContentSchema = z.object({
   title: z.string().trim().min(1).max(100),
   synopsis: Paragraph,
   choices: z
@@ -112,7 +113,24 @@ export const StoryReviewSchema = z.object({
   characterChanges: z.array(ShortText).min(1).max(8),
   unresolvedConflicts: z.array(ShortText).max(8),
   preservedFacts: z.array(ShortText).min(1).max(8),
-  markdown: z.string().trim().min(1).max(12000),
+  ending: z.object({
+    title: z.string().trim().min(1).max(100),
+    scene: Narrative,
+    choicePayoffs: z
+      .array(
+        z.object({
+          round: z.number().int().min(1).max(MAX_STORY_ROUNDS),
+          action: ShortText,
+          payoff: ShortText,
+        }),
+      )
+      .min(MIN_REVIEW_ROUNDS)
+      .max(MAX_STORY_ROUNDS),
+  }),
+});
+
+export const StoryReviewSchema = StoryReviewContentSchema.extend({
+  markdown: z.string().trim().min(1).max(24000),
 });
 
 export const AnalyzeRequestSchema = z.object({
@@ -164,6 +182,7 @@ export type AnalysisResponse = z.infer<typeof AnalysisResponseSchema>;
 export type SceneFrame = z.infer<typeof SceneFrameSchema>;
 export type StartResponse = z.infer<typeof StartResponseSchema>;
 export type TurnProposal = z.infer<typeof TurnProposalSchema>;
+export type StoryReviewContent = z.infer<typeof StoryReviewContentSchema>;
 export type StoryReview = z.infer<typeof StoryReviewSchema>;
 export type SourceEvidence = z.infer<typeof SourceEvidenceSchema>;
 export type AnalyzeRequest = z.infer<typeof AnalyzeRequestSchema>;

@@ -49,7 +49,7 @@ export const TURN_INSTRUCTION = `
 nextActions 必须恰好三个；rationale 必须为 1～4 条。resultScene 应以具体动作、对白、环境反应和后果推进剧情，约 500～900 个中文字符，不要只做摘要；保持角色边界和世界规则。`;
 
 export const REVIEW_INSTRUCTION = `
-只根据作者确认的世界卡、分歧点、当前 4～12 个已接受回合和剧情状态，生成作者可继续使用的阶段回顾。
+只根据作者确认的世界卡、分歧点、当前 4～12 个已接受回合和剧情状态，生成作者可继续使用的阶段回顾，并续写一个按当前路线收束的故事结局。
 返回 JSON：
 {
   "title":"新剧情线标题", "synopsis":"完整梗概",
@@ -57,6 +57,10 @@ export const REVIEW_INSTRUCTION = `
   "differences":["与原始剧情线的主要差异"],
   "characterChanges":["人物或关系变化"],
   "unresolvedConflicts":[""], "preservedFacts":["始终遵守的世界事实"],
-  "markdown":"包含以上内容的完整 Markdown"
+  "ending": {
+    "title":"故事结局标题",
+    "scene":"从当前状态自然续写到收束的完整结局场景",
+    "choicePayoffs":[{"round":1,"action":"该回合已接受行动原文","payoff":"这个选择如何在结局中得到兑现"}]
+  }
 }
-choices 必须覆盖全部已接受回合，数量与输入一致。阶段回顾是当前进展的快照，不代表故事已经结束。`;
+choices 与 ending.choicePayoffs 都必须逐项覆盖全部已接受回合，数量、顺序和 round 与输入一致。ending.scene 应以具体动作、对白、环境与人物决定完成约 800～1600 个中文字符的叙事收束，不要只写总结；它可以解决冲突或有意识地保留余韵，但必须体现每个已接受选择造成的后果，不能采用尚未接受的草案。阶段回顾是当前进展的快照，路线结局是作者可采用的结局版本；作者仍可返回路线继续推演。`;

@@ -64,6 +64,27 @@ export function ReviewStage({
           </ol>
         </article>
 
+        {review.ending ? (
+          <article className="ending-panel">
+            <span className="panel-index">ROUTE ENDING</span>
+            <h2>按当前选择续写的故事结局</h2>
+            <h3>{review.ending.title}</h3>
+            <p className="ending-scene">{review.ending.scene}</p>
+            <h4>这些选择如何抵达结局</h4>
+            <ol className="ending-payoff-list">
+              {review.ending.choicePayoffs.map((payoff) => (
+                <li key={payoff.round}>
+                  <span>{String(payoff.round).padStart(2, "0")}</span>
+                  <div>
+                    <strong>{payoff.action}</strong>
+                    <p>{payoff.payoff}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </article>
+        ) : null}
+
         <ReviewList title="偏离原始剧情" eyebrow="DIFFERENCES" items={review.differences} />
         <ReviewList title="人物与关系变化" eyebrow="CHARACTERS" items={review.characterChanges} />
         <ReviewList title="仍未解决的冲突" eyebrow="OPEN THREADS" items={review.unresolvedConflicts} />

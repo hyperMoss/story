@@ -11,7 +11,7 @@ tracker: local-fallback
 
 ## Solution
 
-构建一个名为“岔路”的单人 Web 产品。故事作者粘贴短篇或章节，或导入 `.txt/.md`，由真实文本模型提炼可编辑的故事世界卡和三个分歧候选。作者选定分歧点后接管原故事主角，在 4～12 个场景回合中从三个建议行动或一个自定义行动中做选择。每次推演先作为草案展示状态变化和简短依据，只有作者接受后才提交到结构化剧情状态；作者也可提供一句修正意见，从相同的已接受状态重新推演。四轮以后可随时生成可复制的 Markdown 阶段回顾，并返回当前路线继续。
+构建一个名为“岔路”的单人 Web 产品。故事作者粘贴短篇或章节，或导入 `.txt/.md`，由真实文本模型提炼可编辑的故事世界卡和三个分歧候选。作者选定分歧点后接管原故事主角，在 4～12 个场景回合中从三个建议行动或一个自定义行动中做选择。每次推演先作为草案展示状态变化和简短依据，只有作者接受后才提交到结构化剧情状态；作者也可提供一句修正意见，从相同的已接受状态重新推演。四轮以后可随时生成包含路线结局的 Markdown 阶段回顾，并返回当前路线继续。
 
 产品以原创当代悬疑示例保障首次体验，以浏览器本地存储恢复进度，以服务端环境变量保护模型密钥和演示访问码。服务端不持久化故事内容。
 
@@ -38,15 +38,16 @@ tracker: local-fallback
 19. As a 故事作者, I want to reject a proposal with one correction instruction, so that the model can retry without advancing the round or polluting accepted state.
 20. As a 故事作者, I want four rounds to unlock a staged review and a twelve-round upper bound, so that I can continue a useful storyline without creating an endless generator.
 21. As a 故事作者, I want a choice path and staged synopsis, decision timeline, original-plot differences, character changes, preserved facts, and unresolved conflicts, so that the exploration becomes usable writing material.
-22. As a 故事作者, I want to copy the final result as Markdown, so that I can continue working in my preferred writing tool.
-23. As a returning author, I want my current session restored after a refresh, so that an accidental reload does not erase accepted work.
-24. As a 故事作者, I want to clear local progress and start over, so that I remain in control of locally retained content.
-25. As a 故事作者, I want model and validation failures to preserve my source and accepted state, so that retrying is safe.
-26. As an evaluator, I want obvious waiting, success, error, and retry states, so that the product feels complete even when generation takes time.
-27. As a mobile or desktop evaluator, I want the primary path to remain readable and operable across common viewport sizes, so that presentation quality does not depend on one screen.
-28. As a repository reviewer, I want a README that separates real, mocked, incomplete, and out-of-scope capabilities, so that implementation claims are auditable.
-29. As a maintainer, I want the model response validated before it reaches product state, so that malformed output cannot silently corrupt the session.
-30. As a maintainer, I want the fake and real model paths to share the same domain contract, so that deterministic tests exercise the same external behavior as production.
+22. As a 故事作者, I want a narrative ending that pays off every accepted choice, so that the route produces a usable conclusion rather than only a summary.
+23. As a 故事作者, I want to copy the final result as Markdown, so that I can continue working in my preferred writing tool.
+24. As a returning author, I want my current session restored after a refresh, so that an accidental reload does not erase accepted work.
+25. As a 故事作者, I want to clear local progress and start over, so that I remain in control of locally retained content.
+26. As a 故事作者, I want model and validation failures to preserve my source and accepted state, so that retrying is safe.
+27. As an evaluator, I want obvious waiting, success, error, and retry states, so that the product feels complete even when generation takes time.
+28. As a mobile or desktop evaluator, I want the primary path to remain readable and operable across common viewport sizes, so that presentation quality does not depend on one screen.
+29. As a repository reviewer, I want a README that separates real, mocked, incomplete, and out-of-scope capabilities, so that implementation claims are auditable.
+30. As a maintainer, I want the model response validated before it reaches product state, so that malformed output cannot silently corrupt the session.
+31. As a maintainer, I want the fake and real model paths to share the same domain contract, so that deterministic tests exercise the same external behavior as production.
 
 ## Implementation Decisions
 
@@ -57,7 +58,7 @@ tracker: local-fallback
 - Use an explicit structured story state containing the confirmed world card, chosen divergence, protagonist situation, character states, relationships, risks, unresolved conflicts, and accepted rounds.
 - Separate the current accepted state from a turn proposal. A proposal contains the resulting scene, three next suggested actions, state changes, concise rationale, and proposed next state. Only acceptance commits it.
 - Regeneration with a correction instruction uses the same accepted state, current scene, and selected action. It replaces the proposal but does not increase the accepted-round count.
-- Unlock staged review after four accepted rounds, allow continuing from a review, and stop the current stage after twelve. Generate each review only from confirmed world facts, the chosen divergence, accepted rounds, and current accepted state.
+- Unlock staged review after four accepted rounds, allow continuing from a review, and stop the current stage after twelve. Generate each review and narrative route ending only from confirmed world facts, the chosen divergence, accepted rounds, and current accepted state; require one ending payoff per accepted round.
 - Save the current session in browser local storage. Never persist source stories or generated content on the application server.
 - Support pasted text, UTF-8 `.txt` and `.md` files, and one bundled original suspense sample. Reject unsupported formats and enforce a bounded source length with clear feedback.
 - Present the experience as a restrained suspense text-adventure stage with readable long-form typography, transitions, action cards, a progress rail, and an author-facing state panel. Do not generate images.
@@ -79,7 +80,7 @@ tracker: local-fallback
 ## Out of Scope
 
 - Whole-novel ingestion, chunking, embeddings, retrieval, or RAG.
-- Unlimited scene generation or model-selected endings.
+- Unlimited scene generation, or allowing the model to decide when the route must end without the author's request.
 - Scene illustrations, video, voice, or generated character art.
 - Accounts, cloud project storage, cross-device sync, or collaboration.
 - Public sharing links or a separate reader/player experience.

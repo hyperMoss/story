@@ -1507,6 +1507,99 @@ h2 {
   grid-column: 1 / -1;
 }
 
+.ending-panel {
+  position: relative;
+  grid-column: 1 / -1;
+  border-color: rgba(216, 168, 92, 0.42) !important;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(178, 83, 51, 0.15), transparent 28rem),
+    linear-gradient(145deg, rgba(50, 43, 32, 0.88), rgba(24, 25, 22, 0.92)) !important;
+  overflow: hidden;
+}
+
+.ending-panel::after {
+  content: "终";
+  position: absolute;
+  right: 2rem;
+  top: 0.2rem;
+  color: rgba(216, 168, 92, 0.055);
+  font-family: ui-serif, "Songti SC", Georgia, serif;
+  font-size: clamp(8rem, 20vw, 16rem);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.ending-panel h3,
+.ending-panel h4,
+.ending-scene,
+.ending-payoff-list {
+  position: relative;
+  z-index: 1;
+}
+
+.ending-panel h3 {
+  margin: 0.65rem 0 0;
+  color: var(--amber-bright);
+  font-family: ui-serif, "Songti SC", Georgia, serif;
+  font-size: clamp(1.7rem, 3vw, 2.8rem);
+  font-weight: 500;
+}
+
+.ending-scene {
+  max-width: 66rem;
+  margin: 2rem 0 0;
+  color: var(--ink);
+  font-family: ui-serif, "Songti SC", Georgia, serif;
+  font-size: 1.08rem;
+  line-height: 2;
+  white-space: pre-wrap;
+}
+
+.ending-panel h4 {
+  margin: 2.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ending-payoff-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ending-payoff-list li {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0.65rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: rgba(16, 17, 15, 0.35);
+}
+
+.ending-payoff-list li > span {
+  color: var(--amber);
+  font-family: Georgia, serif;
+}
+
+.ending-payoff-list strong {
+  display: block;
+  color: var(--ink);
+  font-family: ui-serif, "Songti SC", Georgia, serif;
+  font-size: 0.85rem;
+}
+
+.ending-payoff-list p {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
 .review-timeline {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));

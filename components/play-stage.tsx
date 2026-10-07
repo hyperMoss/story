@@ -157,7 +157,7 @@ export function PlayStage({
                   busy={Boolean(loading)}
                   onClick={onFinishReview}
                 >
-                  {loading || "仅回顾已接受路线"}
+                  {loading || "回顾已接受路线并生成结局"}
                 </LoadingButton>
               ) : null}
             </article>
@@ -165,14 +165,14 @@ export function PlayStage({
             <div className="finalize-panel">
               <span className="kicker">TWELVE CHOICES COMPLETE</span>
               <h2>当前阶段已经走完。</h2>
-              <p>十二个选择已经成为已接受事实。先生成阶段回顾，再决定下一条路线。</p>
+              <p>十二个选择已经成为已接受事实。生成阶段回顾与路线结局，带走这次推演。</p>
               <ErrorNotice message={error} />
               <LoadingButton
                 className="primary-button"
                 busy={Boolean(loading)}
                 onClick={onFinishReview}
               >
-                {loading || "生成阶段回顾"}
+                {loading || "生成阶段回顾与结局"}
               </LoadingButton>
             </div>
           ) : (
@@ -230,7 +230,7 @@ export function PlayStage({
                     busy={Boolean(loading)}
                     onClick={onFinishReview}
                   >
-                    {loading || "生成阶段回顾"}
+                    {loading || "生成阶段回顾与结局"}
                   </LoadingButton>
                 ) : null}
               </div>

@@ -378,10 +378,10 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
 
   function finishReview() {
     if ((session.storyState?.acceptedRounds.length ?? 0) < MIN_REVIEW_ROUNDS) {
-      setError(`至少接受 ${MIN_REVIEW_ROUNDS} 个选择后才能生成阶段回顾。`);
+      setError(`至少接受 ${MIN_REVIEW_ROUNDS} 个选择后才能生成阶段回顾与路线结局。`);
       return;
     }
-    void withTask("正在整理阶段回顾…", (isCurrent) =>
+    void withTask("正在整理阶段回顾并续写路线结局…", (isCurrent) =>
       requestReview(session, isCurrent),
     );
   }

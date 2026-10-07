@@ -61,9 +61,14 @@ test("author completes the four-round alternate timeline", async ({ page }) => {
   const choicePath = page.getByRole("region", { name: "选择轨迹" });
   await expect(choicePath).toBeVisible();
   await expect(choicePath.locator(".choice-path-node.is-accepted")).toHaveCount(4);
-  await page.getByRole("button", { name: "生成阶段回顾" }).click();
+  await page.getByRole("button", { name: "生成阶段回顾与结局" }).click();
   await expect(page.getByRole("heading", { name: "闭馆之后：另一条走廊" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "4 次关键选择" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "按当前选择续写的故事结局" }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "午夜前的最后一扇门" })).toBeVisible();
+  await expect(page.locator(".ending-payoff-list li")).toHaveCount(4);
   await expect(page.getByRole("button", { name: "复制 Markdown" })).toBeVisible();
 
   await page.reload();
@@ -85,7 +90,7 @@ test("author completes the four-round alternate timeline", async ({ page }) => {
   await expect(page.getByRole("region", { name: "选择轨迹" })).toContainText(
     "追问对方刚才话里的矛盾",
   );
-  await page.getByRole("button", { name: "仅回顾已接受路线" }).click();
+  await page.getByRole("button", { name: "回顾已接受路线并生成结局" }).click();
   await expect(page.getByRole("heading", { name: "4 次关键选择" })).toBeVisible();
   await page.getByRole("button", { name: "继续这条故事线" }).click();
   await expect(page.getByTestId("turn-proposal")).toBeVisible();
@@ -248,9 +253,9 @@ test("misaligned review remains visible and retryable", async ({ page }) => {
       .click();
   }
 
-  await page.getByRole("button", { name: "生成阶段回顾" }).click();
+  await page.getByRole("button", { name: "生成阶段回顾与结局" }).click();
   await expect(page.locator(".action-section .error-notice")).toContainText(
     "没有覆盖全部已接受选择",
   );
-  await expect(page.getByRole("button", { name: "生成阶段回顾" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "生成阶段回顾与结局" })).toBeVisible();
 });

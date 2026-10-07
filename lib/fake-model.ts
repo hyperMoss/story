@@ -1,6 +1,6 @@
 import type {
   DivergenceCandidate,
-  StoryReview,
+  StoryReviewContent,
   StoryState,
   StoryWorldCard,
   TurnRequest,
@@ -203,19 +203,16 @@ export function fakeModelResponse(task: ModelTask, payload: unknown): unknown {
     );
   }
   const synopsis = `林夏没有沿着原始故事独自潜入，而是在不断交换信息与承担风险的过程中迫使周明参与调查。${choiceCount} 次选择让秘密从个人追踪变成一场随时可能破裂的有限合作。`;
-  const markdown = [
-    "# 闭馆之后：另一条走廊",
-    "",
-    "## 新剧情梗概",
-    synopsis,
-    "",
-    "## 关键选择",
-    ...choices.map((choice) => `${choice.round}. **${choice.action}**：${choice.result}`),
-    "",
-    "## 未解决冲突",
-    ...input.storyState.unresolvedConflicts.map((conflict) => `- ${conflict}`),
-  ].join("\n");
-  const review: StoryReview = {
+  const ending = {
+    title: "午夜前的最后一扇门",
+    scene: `旧展厅的自动锁发出最后一声倒计时提示时，林夏没有再独自追向地下库房。她把一路保留下来的证据摊在总控台上，也把每一次试探、退让与交换过的信息逐一说给周明听。周明望着监控中正在关闭的防火门，终于承认顾馆长利用他的家庭困境，逼他覆盖了林舟最后一次进入库房的记录。林夏没有因这句坦白放下戒备，而是让周明当着她的面恢复备份，并把录音和出入记录同时发送给馆外的同事。警报响起后，地下库房传来林舟断断续续的回应。两人赶在断电前开启应急通道，发现林舟受伤却仍守着那件被调包的展品。天亮时，警方封锁了旧展厅，捐赠展被迫延期。周明需要为自己的隐瞒负责，却也因最后的证词保住了林舟。林夏站在重新亮起的走廊里，明白这条路并没有让所有人毫发无伤，但她没有再让秘密只掌握在某一个人手中。她把修复台上的工作灯关掉，与弟弟一起走出博物馆；身后的门缓缓合拢，这一次，门内留下的是等待查明的证据，而不是被迫沉默的人。`,
+    choicePayoffs: choices.map((choice) => ({
+      round: choice.round,
+      action: choice.action,
+      payoff: `第 ${choice.round} 次选择留下的信息与风险，最终成为林夏迫使周明公开证据的一部分。`,
+    })),
+  };
+  const review: StoryReviewContent = {
     title: "闭馆之后：另一条走廊",
     synopsis,
     choices,
@@ -229,7 +226,7 @@ export function fakeModelResponse(task: ModelTask, payload: unknown): unknown {
     ],
     unresolvedConflicts: input.storyState.unresolvedConflicts,
     preservedFacts: input.worldCard.rules.slice(0, 3),
-    markdown,
+    ending,
   };
   return review;
 }
