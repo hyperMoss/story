@@ -4,6 +4,12 @@
 	"name": "story",
 	"compatibility_date": "2026-10-07",
 	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"vars": {
+		"STORY_MODEL_MODE": "live",
+		"STORY_MODEL_BASE_URL": "https://api.deepseek.com/v1",
+		"STORY_MODEL_NAME": "deepseek-flash",
+		"STORY_MODEL_TIMEOUT_MS": "90000"
+	},
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"

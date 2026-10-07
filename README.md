@@ -67,11 +67,17 @@ pnpm run deploy
 pnpm run preview   # 本地以 workerd 预览部署产物
 ```
 
+非密钥配置写在 `wrangler.jsonc` 的 `vars` 里（已包含 `STORY_MODEL_MODE=live` 与 DeepSeek 的 `BASE_URL` / `NAME`）。`.env.local` 只对本地 `next dev` 生效，不会随构建产物上传到 Cloudflare——线上模式完全由 `wrangler.jsonc` 的 `vars` 加上 Cloudflare 侧的 secret 决定。
+
 首次部署前先在 Cloudflare 侧写入运行时密钥，不要把它们提交进仓库：
 
 ```bash
 pnpm exec wrangler secret put STORY_MODEL_API_KEY
+# 若线上需要访问码页面，再加一条
+pnpm exec wrangler secret put DEMO_ACCESS_CODE
 ```
+
+改完 `vars` 必须重新 `pnpm run deploy` 才会生效，`secret put` 则会在下一次部署时保留。部署后可访问 `https://<worker>/api/health` 确认返回的 `modelMode` 是 `live`；若仍是 `fake`，说明该 Worker 上没有生效的 `STORY_MODEL_MODE=live`。
 
 Cloudflare Builds 的构建命令填 `pnpm run deploy`，部署命令留空。`package.json` 的 `name` 必须与 `wrangler.jsonc` 的 `name` 一致（都是 `story`），否则 OpenNext 的 `WORKER_SELF_REFERENCE` 自引用绑定会指向一个不存在的 Worker，部署会以错误码 `10143` 失败。
 
@@ -121,3 +127,5 @@ Playwright 会用访问码 `story-test` 和确定性假模型启动隔离服务�
 明确不支持全书自动语义理解/摘要、无限轮次、场景图片、账号与云端项目、公开分享、完整分支树、PDF/Word/EPUB 或文风模仿承诺。
 
 完整产品范围、验收标准和五分钟录屏结构见 [产品定义](docs/product-definition.md)。基础流程见 [MVP 规格](docs/specs/dynamic-story-mvp.md)，长篇边界见 [长篇蓝本规格](docs/specs/long-form-story-blueprint.md) 与 [研究记录](docs/research/long-form-story-ingestion.md)。
+
+面向使用者与评审的操作说明见 [体验说明](docs/user-guide.md)。
