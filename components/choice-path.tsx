@@ -3,20 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 import type {
   SceneFrame,
+  StoryRoundLimit,
   StoryState,
   TurnProposal,
 } from "@/lib/domain";
-import { MAX_STORY_ROUNDS } from "@/lib/domain";
 import type { PendingAction } from "@/components/session";
 
 export function ChoicePath({
   frame,
   storyState,
+  roundLimit,
   proposal,
   pendingAction,
 }: {
   frame: SceneFrame;
   storyState: StoryState;
+  roundLimit: StoryRoundLimit;
   proposal?: TurnProposal;
   pendingAction?: PendingAction;
 }) {
@@ -37,7 +39,7 @@ export function ChoicePath({
       accepted: true,
       proposal: false,
     })),
-    ...(acceptedCount < MAX_STORY_ROUNDS
+    ...(acceptedCount < roundLimit
       ? [
           {
             id: `round-${currentRound}`,

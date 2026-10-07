@@ -2,10 +2,11 @@ import { useMemo, useState } from "react";
 import { ChoicePath } from "@/components/choice-path";
 import type {
   SceneFrame,
+  StoryRoundLimit,
   StoryState,
   TurnProposal,
 } from "@/lib/domain";
-import { MAX_STORY_ROUNDS, MIN_REVIEW_ROUNDS } from "@/lib/domain";
+import { MIN_REVIEW_ROUNDS } from "@/lib/domain";
 import type { PendingAction } from "@/components/session";
 import { ErrorNotice, LoadingButton } from "@/components/stage-shell";
 
@@ -20,6 +21,7 @@ const areaLabels = {
 export function PlayStage({
   frame,
   storyState,
+  roundLimit,
   proposal,
   pendingAction,
   loading,
@@ -31,6 +33,7 @@ export function PlayStage({
 }: {
   frame: SceneFrame;
   storyState: StoryState;
+  roundLimit: StoryRoundLimit;
   proposal?: TurnProposal;
   pendingAction?: PendingAction;
   loading?: string;
@@ -60,20 +63,21 @@ export function PlayStage({
         <div>
           <span className="kicker">03 / 新剧情线</span>
           <h1>
-            {acceptedCount >= MAX_STORY_ROUNDS
+            {acceptedCount >= roundLimit
               ? "当前阶段已经完成"
               : `第 ${acceptedCount + 1} 个选择`}
           </h1>
         </div>
-        <div className="round-summary" aria-label={`已接受 ${acceptedCount} / ${MAX_STORY_ROUNDS} 个回合`}>
+        <div className="round-summary" aria-label={`已接受 ${acceptedCount} / ${roundLimit} 个回合`}>
           <strong>{String(acceptedCount).padStart(2, "0")}</strong>
-          <span>/ {MAX_STORY_ROUNDS} 已接受</span>
+          <span>/ {roundLimit} 已接受</span>
         </div>
       </div>
 
       <ChoicePath
         frame={frame}
         storyState={storyState}
+        roundLimit={roundLimit}
         proposal={proposal}
         pendingAction={pendingAction}
       />
@@ -83,7 +87,7 @@ export function PlayStage({
           <article className="scene-card">
             <div className="scene-topline">
               <span>
-                SCENE {String(Math.min(acceptedCount + 1, MAX_STORY_ROUNDS)).padStart(2, "0")}
+                SCENE {String(Math.min(acceptedCount + 1, roundLimit)).padStart(2, "0")}
               </span>
               <em>当前已接受剧情</em>
             </div>
@@ -145,7 +149,7 @@ export function PlayStage({
                   onClick={onAccept}
                 >
                   {loading ||
-                    (acceptedCount + 1 === MAX_STORY_ROUNDS
+                    (acceptedCount + 1 === roundLimit
                       ? "接受，完成本阶段"
                       : "接受，进入下一幕")}
                 </LoadingButton>
@@ -161,11 +165,11 @@ export function PlayStage({
                 </LoadingButton>
               ) : null}
             </article>
-          ) : acceptedCount >= MAX_STORY_ROUNDS ? (
+          ) : acceptedCount >= roundLimit ? (
             <div className="finalize-panel">
-              <span className="kicker">TWELVE CHOICES COMPLETE</span>
+              <span className="kicker">{roundLimit} CHOICES COMPLETE</span>
               <h2>当前阶段已经走完。</h2>
-              <p>十二个选择已经成为已接受事实。生成阶段回顾与路线结局，带走这次推演。</p>
+              <p>{roundLimit} 个选择已经成为已接受事实。生成阶段回顾与路线结局，带走这次推演。</p>
               <ErrorNotice message={error} />
               <LoadingButton
                 className="primary-button"

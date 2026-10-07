@@ -1,7 +1,20 @@
 import { z } from "zod";
 
-export const MIN_REVIEW_ROUNDS = 4;
-export const MAX_STORY_ROUNDS = 12;
+export const MIN_STORY_ROUNDS = 4;
+export const DEFAULT_STORY_ROUND_LIMIT = 12;
+export const MAX_STORY_ROUNDS = 20;
+export const MIN_REVIEW_ROUNDS = MIN_STORY_ROUNDS;
+
+export const StoryRoundLimitSchema = z
+  .number()
+  .int()
+  .min(MIN_STORY_ROUNDS)
+  .max(MAX_STORY_ROUNDS);
+
+export function normalizeStoryRoundLimit(value: unknown) {
+  const parsed = StoryRoundLimitSchema.safeParse(value);
+  return parsed.success ? parsed.data : DEFAULT_STORY_ROUND_LIMIT;
+}
 
 const ShortText = z.string().trim().min(1).max(240);
 const Paragraph = z.string().trim().min(1).max(2400);
@@ -184,6 +197,7 @@ export type StartResponse = z.infer<typeof StartResponseSchema>;
 export type TurnProposal = z.infer<typeof TurnProposalSchema>;
 export type StoryReviewContent = z.infer<typeof StoryReviewContentSchema>;
 export type StoryReview = z.infer<typeof StoryReviewSchema>;
+export type StoryRoundLimit = z.infer<typeof StoryRoundLimitSchema>;
 export type SourceEvidence = z.infer<typeof SourceEvidenceSchema>;
 export type AnalyzeRequest = z.infer<typeof AnalyzeRequestSchema>;
 export type StartRequest = z.infer<typeof StartRequestSchema>;

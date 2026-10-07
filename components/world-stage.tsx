@@ -1,4 +1,9 @@
-import type { DivergenceCandidate, StoryWorldCard } from "@/lib/domain";
+import type {
+  DivergenceCandidate,
+  StoryRoundLimit,
+  StoryWorldCard,
+} from "@/lib/domain";
+import { MAX_STORY_ROUNDS, MIN_STORY_ROUNDS } from "@/lib/domain";
 import { ErrorNotice, LoadingButton } from "@/components/stage-shell";
 
 function draftLines(value: string) {
@@ -9,20 +14,24 @@ export function WorldStage({
   worldCard,
   candidates,
   selectedId,
+  roundLimit,
   loading,
   error,
   onWorldCardChange,
   onSelect,
+  onRoundLimitChange,
   onStart,
   onBack,
 }: {
   worldCard: StoryWorldCard;
   candidates: DivergenceCandidate[];
   selectedId?: string;
+  roundLimit: StoryRoundLimit;
   loading?: string;
   error?: string;
   onWorldCardChange: (card: StoryWorldCard) => void;
   onSelect: (id: string) => void;
+  onRoundLimitChange: (roundLimit: StoryRoundLimit) => void;
   onStart: () => void;
   onBack: () => void;
 }) {
@@ -159,6 +168,29 @@ export function WorldStage({
               </button>
             ))}
           </div>
+          <label className="round-limit-field">
+            <span>
+              <strong>路线最大步数</strong>
+              <small>第 4 步起可随时生成回顾与结局</small>
+            </span>
+            <select
+              aria-label="路线最大步数"
+              value={roundLimit}
+              disabled={Boolean(loading)}
+              onChange={(event) =>
+                onRoundLimitChange(Number(event.target.value) as StoryRoundLimit)
+              }
+            >
+              {Array.from(
+                { length: MAX_STORY_ROUNDS - MIN_STORY_ROUNDS + 1 },
+                (_, index) => MIN_STORY_ROUNDS + index,
+              ).map((limit) => (
+                <option key={limit} value={limit}>
+                  {limit} 步{limit === 12 ? " · 推荐" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
           <ErrorNotice message={error} />
           <LoadingButton
             className="primary-button wide-button"

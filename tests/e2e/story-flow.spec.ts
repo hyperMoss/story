@@ -27,10 +27,16 @@ test("author completes the four-round alternate timeline", async ({ page }) => {
 
   const goalField = page.getByLabel("当前目标").first();
   await goalField.fill(`${await goalField.inputValue()}，并且不伤害任何人`);
+  const roundLimit = page.getByLabel("路线最大步数");
+  await expect(roundLimit.locator("option")).toHaveCount(17);
+  await expect(roundLimit.locator("option").first()).toHaveValue("4");
+  await expect(roundLimit.locator("option").last()).toHaveValue("20");
+  await roundLimit.selectOption("6");
   await page.getByRole("button", { name: /把录音交给周明/ }).click();
   await page.getByRole("button", { name: "从这里走向另一条路" }).click();
 
   await expect(page.getByRole("heading", { name: "第 1 个选择" })).toBeVisible();
+  await expect(page.getByLabel("已接受 0 / 6 个回合")).toBeVisible();
   await page.getByRole("button", { name: /追问对方刚才话里的矛盾/ }).click();
   await page.getByRole("button", { name: "推演这个选择" }).click();
   await expect(page.getByTestId("turn-proposal")).toBeVisible();
@@ -248,6 +254,7 @@ test("misaligned review remains visible and retryable", async ({ page }) => {
   await page.getByRole("button", { name: "使用原创悬疑示例" }).click();
   await page.getByRole("button", { name: "提炼故事世界" }).click();
   await page.getByLabel("故事标题").fill("闭馆之后 [测试：回顾回合错位]");
+  await page.getByLabel("路线最大步数").selectOption("4");
   await page.getByRole("button", { name: /把录音交给周明/ }).click();
   await page.getByRole("button", { name: "从这里走向另一条路" }).click();
 
@@ -263,8 +270,10 @@ test("misaligned review remains visible and retryable", async ({ page }) => {
       .click();
   }
 
+  await expect(page.getByRole("heading", { name: "当前阶段已经完成" })).toBeVisible();
+  await expect(page.getByLabel("已接受 4 / 4 个回合")).toBeVisible();
   await page.getByRole("button", { name: "生成阶段回顾与结局" }).click();
-  await expect(page.locator(".action-section .error-notice")).toContainText(
+  await expect(page.locator(".finalize-panel .error-notice")).toContainText(
     "没有覆盖全部已接受选择",
   );
   await expect(page.getByRole("button", { name: "生成阶段回顾与结局" })).toBeVisible();

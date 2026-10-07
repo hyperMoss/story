@@ -23,7 +23,11 @@ import type {
   StoryWorldCard,
   TurnProposal,
 } from "@/lib/domain";
-import { MAX_STORY_ROUNDS, MIN_REVIEW_ROUNDS } from "@/lib/domain";
+import {
+  MIN_REVIEW_ROUNDS,
+  normalizeStoryRoundLimit,
+  type StoryRoundLimit,
+} from "@/lib/domain";
 import {
   buildContextPackage,
   createLongStorySource,
@@ -95,6 +99,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   const [loading, setLoading] = useState<string>();
   const [error, setError] = useState<string>();
   const taskVersion = useRef(0);
+  const roundLimit = normalizeStoryRoundLimit(session.roundLimit);
 
   useEffect(() => {
     void fetch("/api/session", { cache: "no-store" })
@@ -352,7 +357,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   function acceptProposal() {
     if (!session.proposal || !session.storyState || !session.pendingAction || !session.frame) return;
     const roundNumber = session.storyState.acceptedRounds.length + 1;
-    if (roundNumber > MAX_STORY_ROUNDS) return;
+    if (roundNumber > roundLimit) return;
     const acceptedRound: AcceptedRound = {
       round: roundNumber,
       action: session.pendingAction.label,
@@ -479,6 +484,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
           worldCard={session.worldCard}
           candidates={session.analysis.divergenceCandidates}
           selectedId={session.selectedDivergenceId}
+          roundLimit={roundLimit}
           loading={loading}
           error={error}
           onWorldCardChange={(worldCard) =>
@@ -486,6 +492,9 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
           }
           onSelect={(selectedDivergenceId) =>
             setSession((current) => ({ ...current, selectedDivergenceId }))
+          }
+          onRoundLimitChange={(nextRoundLimit: StoryRoundLimit) =>
+            setSession((current) => ({ ...current, roundLimit: nextRoundLimit }))
           }
           onStart={startStory}
           onBack={() => setSession((current) => ({ ...current, stage: "import" }))}
@@ -497,6 +506,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
           key={session.storyState.acceptedRounds.length}
           frame={session.frame}
           storyState={session.storyState}
+          roundLimit={roundLimit}
           proposal={session.proposal}
           pendingAction={session.pendingAction}
           loading={loading}
@@ -512,8 +522,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
         <ReviewStage
           review={session.review}
           canContinue={
-            (session.storyState?.acceptedRounds.length ?? MAX_STORY_ROUNDS) <
-            MAX_STORY_ROUNDS
+            (session.storyState?.acceptedRounds.length ?? roundLimit) < roundLimit
           }
           onContinue={continueStory}
           onStartOver={startOver}
