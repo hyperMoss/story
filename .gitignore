@@ -13,3 +13,5 @@ test-results/
 .dev.vars
 .wrangler
 .open-next
+
+.workbuddy

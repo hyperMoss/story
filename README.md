@@ -63,9 +63,12 @@ STORY_MODEL_TIMEOUT_MS=90000
 Worker 名为 `story`，构建产物由 [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare/get-started) 生成，配置见 `wrangler.jsonc` 与 `open-next.config.ts`。
 
 ```bash
-pnpm run deploy
-pnpm run preview   # 本地以 workerd 预览部署产物
+pnpm run deploy        # = opennextjs-cloudflare build && wrangler deploy
+pnpm run deploy:built  # 仅在已构建过的情况下重新上传产物
+pnpm run preview       # 本地以 workerd 预览部署产物
 ```
+
+`deploy` 必须自带构建步骤。直接执行 `wrangler deploy` 而没有先跑 `opennextjs-cloudflare build`，会报 `Could not find compiled Open Next config, did you run the build command?`——因为它找不到 `.open-next/open-next.config.ts.compiled.json` 和 `.open-next/worker.js`。
 
 非密钥配置写在 `wrangler.jsonc` 的 `vars` 里（已包含 `STORY_MODEL_MODE=live` 与 DeepSeek 的 `BASE_URL` / `NAME`）。`.env.local` 只对本地 `next dev` 生效，不会随构建产物上传到 Cloudflare——线上模式完全由 `wrangler.jsonc` 的 `vars` 加上 Cloudflare 侧的 secret 决定。
 
@@ -79,17 +82,22 @@ pnpm exec wrangler secret put DEMO_ACCESS_CODE
 
 改完 `vars` 必须重新 `pnpm run deploy` 才会生效，`secret put` 则会在下一次部署时保留。部署后可访问 `https://<worker>/api/health` 确认返回的 `modelMode` 是 `live`；若仍是 `fake`，说明该 Worker 上没有生效的 `STORY_MODEL_MODE=live`。
 
-Cloudflare Builds 的构建命令填 `pnpm run deploy`，部署命令留空。`package.json` 的 `name` 必须与 `wrangler.jsonc` 的 `name` 一致（都是 `story`），否则 OpenNext 的 `WORKER_SELF_REFERENCE` 自引用绑定会指向一个不存在的 Worker，部署会以错误码 `10143` 失败。
+Cloudflare Builds 配置：构建命令填 `pnpm run build:worker`，部署命令填 `pnpm run deploy:built`，根目录留空。`package.json` 的 `name` 必须与 `wrangler.jsonc` 的 `name` 一致（都是 `story`），否则 OpenNext 的 `WORKER_SELF_REFERENCE` 自引用绑定会指向一个不存在的 Worker，部署会以错误码 `10143` 失败。
+
+若把构建命令直接填成 `pnpm run deploy`（即在构建阶段就部署），`wrangler deploy` 会在产物缺失时报 `Could not find compiled Open Next config`；拆分命令后，构建阶段只产出 `.open-next/`，部署阶段才上传。
 
 ## 验证
 
 ```bash
 pnpm typecheck
 pnpm lint
-pnpm build
+pnpm build         # 仅编译 Next.js 应用
+pnpm build:worker  # 编译 Next.js 并生成 .open-next/ 的 Worker 产物
 pnpm exec playwright install chromium
 pnpm test:e2e
 ```
+
+`build` 必须是 `next build`，不能写成 `opennextjs-cloudflare build`。OpenNext 会反过来调用包管理器的 `build` 脚本，脚本指向自己就会无限递归，报 `Command failed: pnpm build`。Worker 产物的编译入口是 `build:worker`。
 
 Playwright 会用访问码 `story-test` 和确定性假模型启动隔离服务，验证：
 
