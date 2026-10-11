@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AccessGate } from "@/components/access-gate";
 import { ImportStage } from "@/components/import-stage";
+import { ModelPanel } from "@/components/model-panel";
+import { useModelConfig } from "@/components/model-config-store";
 import { PlayStage } from "@/components/play-stage";
 import { ReviewStage } from "@/components/review-stage";
 import {
@@ -57,10 +59,13 @@ function restoredSession() {
   }
 }
 
-async function postJson<T>(url: string, payload: unknown): Promise<T> {
+async function postJson<T>(url: string, payload: unknown, modelHeader?: string): Promise<T> {
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(modelHeader ? { "x-story-model-config": modelHeader } : {}),
+    },
     body: JSON.stringify(payload),
   });
   const body = (await response.json().catch(() => ({}))) as T & ApiFailure;
@@ -92,7 +97,11 @@ function cleanWorldCard(worldCard: StoryWorldCard): StoryWorldCard {
 
 export function StoryApp({ sampleStory }: { sampleStory: string }) {
   const [authorized, setAuthorized] = useState<boolean>();
-  const [modelMode, setModelMode] = useState<"fake" | "live">("fake");
+  const [serverMode, setServerMode] = useState<"fake" | "live">("fake");
+  const [customAllowed, setCustomAllowed] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const { config: modelConfig, save: saveModelConfig, clear: clearModelConfig, header } =
+    useModelConfig();
   const [session, setSession] = useState<StorySession>(restoredSession);
   const [longSource, setLongSource] = useState<LongStorySource>();
   const [focusIndex, setFocusIndex] = useState(0);
@@ -100,6 +109,9 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   const [error, setError] = useState<string>();
   const taskVersion = useRef(0);
   const roundLimit = normalizeStoryRoundLimit(session.roundLimit);
+
+  const effectiveMode = modelConfig ? "custom" : serverMode;
+  const modelLabel = modelConfig?.model ?? (serverMode === "live" ? "服务端配置" : "演示数据");
 
   useEffect(() => {
     void fetch("/api/session", { cache: "no-store" })
@@ -109,7 +121,8 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
       })
       .then((access) => {
         setAuthorized(Boolean(access.authorized));
-        setModelMode(access.modelMode === "live" ? "live" : "fake");
+        setServerMode(access.modelMode === "live" ? "live" : "fake");
+        setCustomAllowed(access.customModelAllowed !== false);
       })
       .catch(() => {
         setAuthorized(false);
@@ -263,7 +276,11 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
       return;
     }
     void withTask("正在理解人物、规则与关键时刻…", async (isCurrent) => {
-      const analysis = await postJson<AnalysisResponse>("/api/analyze", { sourceText });
+      const analysis = await postJson<AnalysisResponse>(
+        "/api/analyze",
+        { sourceText },
+        header,
+      );
       if (!isCurrent()) return;
       setSession((current) => ({
         ...current,
@@ -285,15 +302,19 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
     const worldCard = cleanWorldCard(session.worldCard);
     setSession((current) => ({ ...current, worldCard }));
     void withTask("正在打开分歧点…", async (isCurrent) => {
-      const response = await postJson<StartResponse>("/api/start", {
-        worldCard,
-        divergence,
-        sourceEvidence: sourceEvidence([
-          ...worldCard.characters.map((character) => character.name),
-          divergence.title,
-          divergence.moment,
-        ]),
-      });
+      const response = await postJson<StartResponse>(
+        "/api/start",
+        {
+          worldCard,
+          divergence,
+          sourceEvidence: sourceEvidence([
+            ...worldCard.characters.map((character) => character.name),
+            divergence.title,
+            divergence.moment,
+          ]),
+        },
+        header,
+      );
       if (!isCurrent()) return;
       setSession((current) =>
         sessionFromStart({ ...current, worldCard }, divergence, response),
@@ -305,18 +326,22 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
     const { worldCard, divergence, storyState, frame } = session;
     if (!worldCard || !divergence || !storyState || !frame) return;
     void withTask("正在推演选择的后果…", async (isCurrent) => {
-      const proposal = await postJson<TurnProposal>("/api/turn", {
-        worldCard,
-        divergence,
-        currentScene: frame.scene,
-        storyState,
-        action,
-        sourceEvidence: sourceEvidence([
-          ...worldCard.characters.map((character) => character.name),
-          action.label,
-          frame.scene,
-        ]),
-      });
+      const proposal = await postJson<TurnProposal>(
+        "/api/turn",
+        {
+          worldCard,
+          divergence,
+          currentScene: frame.scene,
+          storyState,
+          action,
+          sourceEvidence: sourceEvidence([
+            ...worldCard.characters.map((character) => character.name),
+            action.label,
+            frame.scene,
+          ]),
+        },
+        header,
+      );
       if (!isCurrent()) return;
       setSession((current) => ({ ...current, pendingAction: action, proposal }));
     });
@@ -326,19 +351,23 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
     const { worldCard, divergence, storyState, frame, pendingAction } = session;
     if (!worldCard || !divergence || !storyState || !frame || !pendingAction) return;
     void withTask("正在按修正意见重新推演…", async (isCurrent) => {
-      const proposal = await postJson<TurnProposal>("/api/turn", {
-        worldCard,
-        divergence,
-        currentScene: frame.scene,
-        storyState,
-        action: pendingAction,
-        correction,
-        sourceEvidence: sourceEvidence([
-          ...worldCard.characters.map((character) => character.name),
-          pendingAction.label,
+      const proposal = await postJson<TurnProposal>(
+        "/api/turn",
+        {
+          worldCard,
+          divergence,
+          currentScene: frame.scene,
+          storyState,
+          action: pendingAction,
           correction,
-        ]),
-      });
+          sourceEvidence: sourceEvidence([
+            ...worldCard.characters.map((character) => character.name),
+            pendingAction.label,
+            correction,
+          ]),
+        },
+        header,
+      );
       if (!isCurrent()) return;
       setSession((current) => ({ ...current, proposal }));
     });
@@ -346,11 +375,15 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
 
   async function requestReview(nextSession: StorySession, isCurrent: () => boolean) {
     if (!nextSession.worldCard || !nextSession.divergence || !nextSession.storyState) return;
-    const review = await postJson<StoryReview>("/api/review", {
-      worldCard: nextSession.worldCard,
-      divergence: nextSession.divergence,
-      storyState: nextSession.storyState,
-    });
+    const review = await postJson<StoryReview>(
+      "/api/review",
+      {
+        worldCard: nextSession.worldCard,
+        divergence: nextSession.divergence,
+        storyState: nextSession.storyState,
+      },
+      header,
+    );
     if (isCurrent()) setSession({ ...nextSession, stage: "review", review });
   }
 
@@ -429,14 +462,28 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   return (
     <StageShell
       stage={session.stage}
-      modelMode={modelMode}
+      modelMode={effectiveMode}
+      modelLabel={modelLabel}
+      panelOpen={panelOpen}
       missingSourceFile={
         session.sourceReference && !longSource ? session.sourceReference.fileName : undefined
       }
       sourceLoading={Boolean(loading)}
+      onTogglePanel={() => setPanelOpen((open) => !open)}
       onStartOver={startOver}
       onRestoreSource={restoreSource}
     >
+      {panelOpen ? (
+        <ModelPanel
+          id="model-panel"
+          config={modelConfig}
+          customModelAllowed={customAllowed}
+          serverMode={serverMode}
+          onSave={saveModelConfig}
+          onClear={clearModelConfig}
+          onClose={() => setPanelOpen(false)}
+        />
+      ) : null}
       {session.stage === "import" ? (
         <ImportStage
           sourceText={session.sourceText}

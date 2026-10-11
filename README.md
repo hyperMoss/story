@@ -16,6 +16,7 @@
 | 推演草案、状态变化、修正重做与接受边界 | 已实现并通过浏览器测试 |
 | 4～12 回合持续推演、选择轨迹、按选择续写的路线结局、阶段回顾后继续、Markdown 复制与本地恢复 | 已实现并通过浏览器测试 |
 | 演示访问码与服务端模型密钥 | 已实现并通过浏览器测试 |
+| 页面内自定义模型接入（预设、连通性测试、模型清单、回退） | 已实现并通过浏览器测试 |
 | OpenAI-compatible 真实模型调用 | 已完成 DeepSeek 合成文本烟测；生产使用前需轮换本地密钥并复测 |
 | 公开线上链接 | 尚未部署 |
 
@@ -58,6 +59,23 @@ STORY_MODEL_TIMEOUT_MS=90000
 
 部署前必须用真实模型完成一次“导入 → 世界卡 → 分歧点 → 至少四回合 → 阶段回顾与路线结局 → 继续推演”的人工验证。不要因为本地假模型测试通过就宣称真实模型已经可用。
 
+## 页面内自定义模型接入
+
+顶栏的模式徽章可点击展开「自定义模型接入」面板。使用者可以填入任意 OpenAI-compatible 服务的接口地址、API 密钥与模型名称，无需改代码或改环境变量即可切换真实模型。
+
+- **预设**：DeepSeek、OpenAI、Moonshot、通义千问、智谱 GLM、Ollama 本地，以及自定义填写。
+- **测试连接**：发一次极短对话请求确认地址、密钥与模型名可用，返回耗时。
+- **读取模型列表**：调用服务的 `/models` 端点填充下拉框；不支持该端点的服务可手动填写。
+- **回退**：面板内可一键清除自定义配置，回到服务端环境变量。
+
+配置存放与传输：
+
+- 默认只存在当前标签页的 `sessionStorage`，关闭页面即失效；勾选「记住此配置」后才写入 `localStorage`。
+- 每个业务请求通过 `x-story-model-config` 请求头携带配置（base64 编码的 JSON），服务端解析后优先于环境变量。
+- 服务端不持久化这份配置：它只用于当前这一次请求，探测接口也只回传耗时与模型清单，永不回传密钥。
+
+若某个部署不希望访客自带密钥，设置 `STORY_ALLOW_CUSTOM_MODEL=false` 即可关闭该功能，接入方式锁回服务端环境变量，面板会显示为不可用。
+
 ## Cloudflare 部署
 
 Worker 名为 `story`，构建产物由 [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare/get-started) 生成，配置见 `wrangler.jsonc` 与 `open-next.config.ts`。
@@ -71,6 +89,8 @@ pnpm run preview       # 本地以 workerd 预览部署产物
 `deploy` 必须自带构建步骤。直接执行 `wrangler deploy` 而没有先跑 `opennextjs-cloudflare build`，会报 `Could not find compiled Open Next config, did you run the build command?`——因为它找不到 `.open-next/open-next.config.ts.compiled.json` 和 `.open-next/worker.js`。
 
 非密钥配置写在 `wrangler.jsonc` 的 `vars` 里（已包含 `STORY_MODEL_MODE=live` 与 DeepSeek 的 `BASE_URL` / `NAME`）。`.env.local` 只对本地 `next dev` 生效，不会随构建产物上传到 Cloudflare——线上模式完全由 `wrangler.jsonc` 的 `vars` 加上 Cloudflare 侧的 secret 决定。
+
+若希望线上访客也能自带密钥，在 `vars` 里加上 `"STORY_ALLOW_CUSTOM_MODEL": "true"`（缺省即开放，设为 `"false"` 则关闭该功能）。
 
 首次部署前先在 Cloudflare 侧写入运行时密钥，不要把它们提交进仓库：
 
@@ -116,6 +136,7 @@ Playwright 会用访问码 `story-test` 和确定性假模型启动隔离服务�
 - `lib/domain.ts`：所有模型输入、输出和剧情状态的运行时契约。
 - `lib/story-service.ts`：分析、开始、回合推演与回顾四个用例。
 - `lib/model-gateway.ts`：真实/假模型共同的结构化输出边界。
+- `lib/model-config.ts`：自定义模型接入的校验、编码、预设与服务商地址约定。
 - `lib/long-source.ts`：长篇解码、章节/片段导航、上下文包和前序证据。
 - `lib/fake-model.ts`：确定性测试实现。
 - `tests/e2e/`：最高层浏览器测试缝隙。

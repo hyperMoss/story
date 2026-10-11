@@ -10,6 +10,7 @@ import {
 } from "@/lib/domain";
 import { requestStructured } from "@/lib/model-gateway";
 import { ModelGatewayError } from "@/lib/model-gateway";
+import type { CustomModelConfig } from "@/lib/model-config";
 import {
   ANALYZE_INSTRUCTION,
   REVIEW_INSTRUCTION,
@@ -17,30 +18,33 @@ import {
   TURN_INSTRUCTION,
 } from "@/lib/prompts";
 
-export function analyzeStory(input: AnalyzeRequest) {
+export function analyzeStory(input: AnalyzeRequest, customConfig?: CustomModelConfig) {
   return requestStructured({
     task: "analyze",
     instruction: ANALYZE_INSTRUCTION,
     payload: input,
     schema: AnalysisResponseSchema,
+    customConfig,
   });
 }
 
-export function startStory(input: StartRequest) {
+export function startStory(input: StartRequest, customConfig?: CustomModelConfig) {
   return requestStructured({
     task: "start",
     instruction: START_INSTRUCTION,
     payload: input,
     schema: StartResponseSchema,
+    customConfig,
   });
 }
 
-export async function proposeTurn(input: TurnRequest) {
+export async function proposeTurn(input: TurnRequest, customConfig?: CustomModelConfig) {
   const proposal = await requestStructured({
     task: "turn",
     instruction: TURN_INSTRUCTION,
     payload: input,
     schema: TurnProposalSchema,
+    customConfig,
   });
 
   return {
@@ -52,12 +56,13 @@ export async function proposeTurn(input: TurnRequest) {
   };
 }
 
-export async function reviewStory(input: ReviewRequest) {
+export async function reviewStory(input: ReviewRequest, customConfig?: CustomModelConfig) {
   const review = await requestStructured({
     task: "review",
     instruction: REVIEW_INSTRUCTION,
     payload: input,
     schema: StoryReviewContentSchema,
+    customConfig,
   });
 
   const acceptedRounds = input.storyState.acceptedRounds;

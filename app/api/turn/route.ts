@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { TurnRequestSchema } from "@/lib/domain";
-import { requireApiAccess, routeError } from "@/lib/api-utils";
+import { customConfigFrom, requireApiAccess, routeError } from "@/lib/api-utils";
 import { proposeTurn } from "@/lib/story-service";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   if (denied) return denied;
   try {
     const input = TurnRequestSchema.parse(await request.json());
-    return NextResponse.json(await proposeTurn(input));
+    return NextResponse.json(await proposeTurn(input, customConfigFrom(request)));
   } catch (error) {
     return routeError(error);
   }

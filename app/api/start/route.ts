@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { StartRequestSchema } from "@/lib/domain";
-import { requireApiAccess, routeError } from "@/lib/api-utils";
+import { customConfigFrom, requireApiAccess, routeError } from "@/lib/api-utils";
 import { startStory } from "@/lib/story-service";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   if (denied) return denied;
   try {
     const input = StartRequestSchema.parse(await request.json());
-    return NextResponse.json(await startStory(input));
+    return NextResponse.json(await startStory(input, customConfigFrom(request)));
   } catch (error) {
     return routeError(error);
   }

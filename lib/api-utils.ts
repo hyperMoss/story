@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { isAuthorized } from "@/lib/auth";
+import {
+  decodeModelConfig,
+  MODEL_CONFIG_HEADER,
+  type CustomModelConfig,
+} from "@/lib/model-config";
 import { ModelGatewayError } from "@/lib/model-gateway";
 
 export async function requireApiAccess() {
@@ -9,6 +14,14 @@ export async function requireApiAccess() {
     { error: { code: "unauthorized", message: "访问码已失效，请重新进入。" } },
     { status: 401 },
   );
+}
+
+/**
+ * 读取浏览器随请求携带的自定义模型配置。
+ * 解析失败一律降级为 undefined，回落到服务端环境变量，而不是中断请求。
+ */
+export function customConfigFrom(request: Request): CustomModelConfig | undefined {
+  return decodeModelConfig(request.headers.get(MODEL_CONFIG_HEADER));
 }
 
 export function routeError(error: unknown) {

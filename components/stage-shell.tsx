@@ -1,3 +1,5 @@
+"use client";
+
 import type { AppStage } from "@/components/session";
 
 const stages: Array<{ id: AppStage; label: string; eyebrow: string }> = [
@@ -10,17 +12,23 @@ const stages: Array<{ id: AppStage; label: string; eyebrow: string }> = [
 export function StageShell({
   stage,
   modelMode,
+  modelLabel,
+  panelOpen,
   missingSourceFile,
   sourceLoading,
   children,
+  onTogglePanel,
   onStartOver,
   onRestoreSource,
 }: {
   stage: AppStage;
-  modelMode: "fake" | "live";
+  modelMode: "fake" | "live" | "custom";
+  modelLabel: string;
+  panelOpen: boolean;
   missingSourceFile?: string;
   sourceLoading?: boolean;
   children: React.ReactNode;
+  onTogglePanel: () => void;
   onStartOver: () => void;
   onRestoreSource: (file: File) => void;
 }) {
@@ -50,9 +58,16 @@ export function StageShell({
           ))}
         </nav>
         <div className="topbar-actions">
-          <span className={`mode-badge is-${modelMode}`}>
-            {modelMode === "fake" ? "本地假模型" : "真实模型"}
-          </span>
+          <button
+            className={`mode-badge is-${modelMode}`}
+            type="button"
+            aria-expanded={panelOpen}
+            aria-controls="model-panel"
+            onClick={onTogglePanel}
+          >
+            {modelMode === "fake" ? "本地假模型" : modelMode === "custom" ? "自定义模型" : "真实模型"}
+            <small>{modelLabel}</small>
+          </button>
           <button className="text-button" type="button" onClick={onStartOver}>
             重新开始
           </button>

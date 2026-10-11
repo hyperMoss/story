@@ -278,3 +278,107 @@ test("misaligned review remains visible and retryable", async ({ page }) => {
   );
   await expect(page.getByRole("button", { name: "生成阶段回顾与结局" })).toBeVisible();
 });
+
+test("custom model access can be configured and drives the story requests", async ({
+  page,
+}) => {
+  await enterDemo(page);
+
+  // 探测走真实外部服务会让套件受网络波动影响，这里固定其响应。
+  let probeFails = true;
+  await page.route("**/api/model", async (route) => {
+    const body = route.request().postDataJSON() as { action: string };
+    if (body.action === "list") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          models: ["deepseek-chat", "deepseek-reasoner"],
+          message: "读取到 2 个模型。",
+        }),
+      });
+      return;
+    }
+    await route.fulfill(
+      probeFails
+        ? {
+            status: 502,
+            contentType: "application/json",
+            body: JSON.stringify({
+              ok: false,
+              error: { code: "provider_error", message: "模型服务暂时不可用，请稍后重试。" },
+            }),
+          }
+        : {
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ ok: true, latencyMs: 412, message: "连接成功，模型 412 ms 内返回。" }),
+          },
+    );
+  });
+
+  const modeBadge = page.locator(".mode-badge");
+  await expect(modeBadge).toContainText("本地假模型");
+
+  await modeBadge.click();
+  const panel = page.getByRole("region", { name: "模型接入" });
+  await expect(panel).toBeVisible();
+
+  // 缺字段时不允许提交。
+  await panel.getByRole("button", { name: "测试连接" }).click();
+  await expect(panel.locator(".error-notice")).toContainText("请填写接口地址");
+
+  await panel.getByLabel("接口地址").fill("https://api.deepseek.com/v1");
+  await panel.getByLabel("API 密钥").fill("sk-test-invalid-key");
+  await panel.getByLabel("模型名称").fill("deepseek-chat");
+
+  // 探测失败必须给出可读原因，而不是静默失败。
+  await panel.getByRole("button", { name: "测试连接" }).click();
+  await expect(panel.locator(".error-notice")).toContainText("模型服务暂时不可用");
+  await expect(panel.getByRole("button", { name: "启用自定义模型" })).toBeVisible();
+
+  // 读取模型列表能把模型名换成下拉选择。
+  await panel.getByRole("button", { name: "读取模型列表" }).click();
+  await expect(panel.getByLabel("模型名称")).toBeVisible();
+  await panel.getByLabel("模型名称").selectOption("deepseek-reasoner");
+
+  // 探测成功后展示耗时。
+  probeFails = false;
+  await panel.getByRole("button", { name: "测试连接" }).click();
+  await expect(panel.locator(".model-probe-ok")).toContainText("连接成功");
+
+  // 记住配置后，模式徽章应切到自定义模型。
+  await panel.getByText("记住此配置").click();
+  await panel.getByRole("button", { name: "启用自定义模型" }).click();
+  await expect(modeBadge).toContainText("自定义模型");
+  await expect(modeBadge).toContainText("deepseek-reasoner");
+
+  await page.reload();
+  await expect(page.locator(".mode-badge")).toContainText("自定义模型");
+
+  // 自定义配置必须随业务请求发到服务端，而不是只在面板里存着。
+  let analyzeHeader: string | undefined;
+  await page.route("**/api/analyze", async (route) => {
+    analyzeHeader = route.request().headers()["x-story-model-config"];
+    await route.abort();
+  });
+  await page.getByRole("button", { name: "使用原创悬疑示例" }).click();
+  await page.getByRole("button", { name: "提炼故事世界" }).click();
+  await expect(page.locator(".error-notice")).toBeVisible();
+  expect(analyzeHeader).toBeTruthy();
+  const decoded = JSON.parse(Buffer.from(analyzeHeader as string, "base64").toString("utf8"));
+  expect(decoded).toMatchObject({
+    baseUrl: "https://api.deepseek.com/v1",
+    model: "deepseek-reasoner",
+  });
+  await page.unroute("**/api/analyze");
+  await page.unroute("**/api/model");
+
+  // 清除后回到服务端配置。
+  await page.locator(".mode-badge").click();
+  await panel.getByRole("button", { name: "清除并改回服务端模型" }).click();
+  await expect(page.locator(".mode-badge")).toContainText("本地假模型");
+  await page.reload();
+  await expect(page.locator(".mode-badge")).toContainText("本地假模型");
+});
