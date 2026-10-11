@@ -29,8 +29,9 @@ test("author completes the four-round alternate timeline", async ({ page }) => {
   await goalField.fill(`${await goalField.inputValue()}，并且不伤害任何人`);
   const roundLimit = page.getByLabel("路线最大步数");
   await expect(roundLimit.locator("option")).toHaveCount(17);
-  await expect(roundLimit.locator("option").first()).toHaveValue("4");
-  await expect(roundLimit.locator("option").last()).toHaveValue("20");
+  // toHaveValue 用在 <option> 上取到的是所属 select 的当前值，必须用属性断言。
+  await expect(roundLimit.locator("option").first()).toHaveAttribute("value", "4");
+  await expect(roundLimit.locator("option").last()).toHaveAttribute("value", "20");
   await roundLimit.selectOption("6");
   await page.getByRole("button", { name: /把录音交给周明/ }).click();
   await page.getByRole("button", { name: "从这里走向另一条路" }).click();
@@ -263,9 +264,10 @@ test("misaligned review remains visible and retryable", async ({ page }) => {
     await page.getByRole("button", { name: /追问对方刚才话里的矛盾/ }).click();
     await page.getByRole("button", { name: "推演这个选择" }).click();
     await page.getByTestId("turn-proposal").waitFor();
+    // 末轮（第 4 / 4）的按钮文案是"接受，完成本阶段"，其余轮次是"接受，进入下一幕"。
     await page
       .getByRole("button", {
-        name: "接受，进入下一幕",
+        name: /接受，(进入下一幕|完成本阶段)/,
       })
       .click();
   }
