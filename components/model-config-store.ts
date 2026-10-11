@@ -3,8 +3,6 @@
 import { useCallback, useState } from "react";
 import {
   CustomModelConfigSchema,
-  DEFAULT_MODEL_TIMEOUT_MS,
-  encodeModelConfig,
   type CustomModelConfig,
 } from "@/lib/model-config";
 
@@ -59,11 +57,5 @@ export function useModelConfig() {
     setConfig(undefined);
   }, []);
 
-  const header = config ? encodeModelConfig(config) : undefined;
-
-  return { config, save, clear, header };
-}
-
-export function defaultTimeoutSeconds() {
-  return Math.round(DEFAULT_MODEL_TIMEOUT_MS / 1000);
+  return { config, save, clear };
 }

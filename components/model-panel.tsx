@@ -70,7 +70,7 @@ export function ModelPanel({
   id?: string;
 }) {
   const [draft, setDraft] = useState<Draft>(() => draftFrom(config));
-  const [busy, setBusy] = useState<"test" | "list" | "save">();
+  const [busy, setBusy] = useState<"test" | "list">();
   const [error, setError] = useState<string>();
   const [result, setResult] = useState<ModelProbeResult>();
   const [modelOptions, setModelOptions] = useState<string[]>();
@@ -158,14 +158,10 @@ export function ModelPanel({
       setError(missing);
       return;
     }
-    setBusy("save");
     setError(undefined);
-    const { remembered, timeoutSeconds } = draft;
-    setBusy(undefined);
     onSave({
       ...currentPayload(),
-      timeoutMs: secondsToTimeout(timeoutSeconds),
-      remembered,
+      remembered: draft.remembered,
     });
     onClose();
   }
@@ -347,7 +343,6 @@ export function ModelPanel({
           <LoadingButton
             className="primary-button"
             type="submit"
-            busy={busy === "save"}
             disabled={!customModelAllowed}
           >
             {config ? "更新接入" : "启用自定义模型"}

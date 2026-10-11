@@ -2073,10 +2073,6 @@ h2 {
     align-items: stretch;
     flex-direction: column;
   }
-
-  .model-badge small {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

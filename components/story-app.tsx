@@ -30,6 +30,7 @@ import {
   normalizeStoryRoundLimit,
   type StoryRoundLimit,
 } from "@/lib/domain";
+import { encodeModelConfig } from "@/lib/model-config";
 import {
   buildContextPackage,
   createLongStorySource,
@@ -100,7 +101,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   const [serverMode, setServerMode] = useState<"fake" | "live">("fake");
   const [customAllowed, setCustomAllowed] = useState(true);
   const [panelOpen, setPanelOpen] = useState(false);
-  const { config: modelConfig, save: saveModelConfig, clear: clearModelConfig, header } =
+  const { config: modelConfig, save: saveModelConfig, clear: clearModelConfig } =
     useModelConfig();
   const [session, setSession] = useState<StorySession>(restoredSession);
   const [longSource, setLongSource] = useState<LongStorySource>();
@@ -110,8 +111,12 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
   const taskVersion = useRef(0);
   const roundLimit = normalizeStoryRoundLimit(session.roundLimit);
 
-  const effectiveMode = modelConfig ? "custom" : serverMode;
-  const modelLabel = modelConfig?.model ?? (serverMode === "live" ? "服务端配置" : "演示数据");
+  // 部署关闭自定义接入时，忽略浏览器里可能残留的旧配置，
+  // 避免每个请求都被服务端 403 卡住；面板仍可查看并手动清除。
+  const activeModelConfig = customAllowed ? modelConfig : undefined;
+  const effectiveMode = activeModelConfig ? "custom" : serverMode;
+  const modelLabel = activeModelConfig?.model ?? (serverMode === "live" ? "服务端配置" : "演示数据");
+  const modelHeader = activeModelConfig ? encodeModelConfig(activeModelConfig) : undefined;
 
   useEffect(() => {
     void fetch("/api/session", { cache: "no-store" })
@@ -279,7 +284,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
       const analysis = await postJson<AnalysisResponse>(
         "/api/analyze",
         { sourceText },
-        header,
+        modelHeader,
       );
       if (!isCurrent()) return;
       setSession((current) => ({
@@ -313,7 +318,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
             divergence.moment,
           ]),
         },
-        header,
+        modelHeader,
       );
       if (!isCurrent()) return;
       setSession((current) =>
@@ -340,7 +345,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
             frame.scene,
           ]),
         },
-        header,
+        modelHeader,
       );
       if (!isCurrent()) return;
       setSession((current) => ({ ...current, pendingAction: action, proposal }));
@@ -366,7 +371,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
             correction,
           ]),
         },
-        header,
+        modelHeader,
       );
       if (!isCurrent()) return;
       setSession((current) => ({ ...current, proposal }));
@@ -382,7 +387,7 @@ export function StoryApp({ sampleStory }: { sampleStory: string }) {
         divergence: nextSession.divergence,
         storyState: nextSession.storyState,
       },
-      header,
+      modelHeader,
     );
     if (isCurrent()) setSession({ ...nextSession, stage: "review", review });
   }

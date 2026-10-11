@@ -47,7 +47,6 @@ export async function POST(request: Request) {
         { status: error.status },
       );
     }
-    const response = routeError(error);
-    return response;
+    return routeError(error);
   }
 }
